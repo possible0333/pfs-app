@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PFS Manager v30</title>
+<title>PFS Manager v34</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -73,7 +73,7 @@ button{cursor:pointer;border:none}
 <div class="shell">
   <section id="loginScreen" class="screen active">
     <div class="login-wrap">
-      <div class="hero"><h1>PFS Manager v25</h1></div>
+      <div class="hero"><h1>PFS Manager v34</h1></div>
       <div class="login-card">
         <div class="sec-title">メンバーを選択</div>
         <div id="memberGrid" class="member-grid"></div>
@@ -108,7 +108,7 @@ button{cursor:pointer;border:none}
 <div id="modal" class="modal"><div class="modal-box"><div class="modal-title"><span id="modalTitle"></span><button class="closex" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
 
 <script>
-const STORAGE_KEY = 'pfs_manager_v27d_data';
+const STORAGE_KEY = 'pfs_manager_v34_data';
 const INITIAL_USERS = [
   // 202604 LOSをもとに、ツール利用メンバーだけ見える形に圧縮した配下関係
   ['shintaro','慎太郎','0000','leader',null],
@@ -966,7 +966,7 @@ function renderPvAdmin(){
     <div class="card-title">PV実績インポート</div>
     <div class="muted">Excelインポートか手入力で実績PVを更新。</div>
     <div class="row-actions" style="margin-top:12px">
-      <input id="excelInput" type="file" accept=".xlsx,.xls" onchange="importExcel(event)" style="display:none">
+      <input id="excelInput" type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" style="display:none">
       <button class="btn2" onclick="document.getElementById('excelInput').click()">Excelを選択</button>
     </div>
     <div class="small" style="margin-top:8px">最終インポート: ${S.actualPVImportedAt?agoText(S.actualPVImportedAt):'未実施'}</div>
@@ -1213,25 +1213,72 @@ function resetAllActivityData(){
 }
 
 function importExcel(ev){
-  const file = ev.target.files && ev.target.files[0]; if(!file) return;
-  if(typeof XLSX === 'undefined'){ alert('Excelライブラリが読み込めていません。手動更新を使ってください。'); return; }
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){
+    alert('Excelライブラリが読み込めていません。手動更新を使ってください。');
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(e){
     try{
-      const wb = XLSX.read(e.target.result, {type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(ws,{header:1});
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1, defval:''});
       if(!rows.length) throw new Error('empty');
-      const header = rows[0].map(x=>String(x||''));
-      const nameIdx = header.findIndex(h=>/名前|氏名|Name/i.test(h));
-      const pvIdx = header.findIndex(h=>/PV|アワード/i.test(h));
-      if(nameIdx<0 || pvIdx<0) throw new Error('columns');
-      for(const r of rows.slice(1)){
-        const name = String(r[nameIdx]||'').trim(); const pv = Number(String(r[pvIdx]||'').replace(/,/g,''));
-        if(!name || !Number.isFinite(pv)) continue;
-        const hit = S.users.find(u=>u.nick===name || u.nick.replace(/・|\s/g,'')===name.replace(/・|\s/g,''));
-        if(hit) hit.actualAwardPV = pv;
+
+      let headerRow = -1;
+      for(let i=0;i<Math.min(rows.length,15);i++){
+        const header = rows[i].map(x=>String(x||'').trim());
+        const hasName = header.some(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
+        const hasPv = header.some(h=>/アワードPV|award\s*pv|組織PV合計|PV/i.test(h));
+        if(hasName && hasPv){
+          headerRow = i;
+          break;
+        }
       }
-      S.actualPVImportedAt = nowIso(); save(); renderApp(); alert('インポート完了');
-    }catch(err){ console.error(err); alert('インポートに失敗しました。列名に「名前」と「PV」があるか確認してください。'); }
+      if(headerRow < 0) throw new Error('columns');
+
+      const header = rows[headerRow].map(x=>String(x||'').trim());
+      const nameIdx = header.findIndex(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
+      let pvIdx = header.findIndex(h=>/アワードPV/i.test(h));
+      if(pvIdx < 0) pvIdx = header.findIndex(h=>/組織PV合計/i.test(h));
+      if(pvIdx < 0) pvIdx = header.findIndex(h=>/PV/i.test(h));
+      const idIdx = header.findIndex(h=>/^(ABO番号|ID)$/i.test(h) || /ABO番号/i.test(h));
+      if(nameIdx < 0 || pvIdx < 0) throw new Error('columns');
+
+      let updated = 0;
+      const normalize = s => String(s||'').replace(/\s+/g,'').replace(/・/g,'').trim();
+      for(const r of rows.slice(headerRow+1)){
+        const rawName = String(r[nameIdx]||'').trim();
+        const rawId = idIdx >= 0 ? String(r[idIdx]||'').trim() : '';
+        const pv = Number(String(r[pvIdx]||'').replace(/,/g,''));
+        if((!rawName && !rawId) || !Number.isFinite(pv)) continue;
+        let hit = null;
+        if(rawId) hit = S.users.find(u=>String(u.id)===rawId);
+        if(!hit && rawName){
+          const normName = normalize(rawName);
+          hit = S.users.find(u=>normalize(u.nick)===normName || normalize(losName(u.id))===normName);
+        }
+        if(hit){
+          hit.actualAwardPV = pv;
+          updated += 1;
+        }
+      }
+      if(!updated) throw new Error('nomatch');
+      S.actualPVImportedAt = nowIso();
+      save();
+      renderApp();
+      alert(`インポート完了（${updated}件更新）`);
+    }catch(err){
+      console.error(err);
+      const msg = err && err.message === 'nomatch'
+        ? '一致するメンバーが見つかりませんでした。ABO番号または名前列を確認してください。'
+        : 'インポートに失敗しました。ヘッダー行に「名前」と「アワードPV」または「PV」列があるか確認してください。';
+      alert(msg);
+    } finally {
+      if(ev && ev.target) ev.target.value = '';
+    }
   };
   reader.readAsArrayBuffer(file);
 }
