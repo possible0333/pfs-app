@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PFS Manager v34</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#fff; --line:#dfe5f2; --text:#182033; --muted:#6f7a95;
+  --pri:#5865f2; --pri2:#7a5cff; --ok:#18a164; --warn:#d97706; --bad:#e5484d;
+  --soft:#eef2ff; --shadow:0 10px 30px rgba(61,77,130,.12); --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(180deg,#eef3ff,#f7f8fc);color:var(--text)}
+button,input,select,textarea{font:inherit}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}
+textarea{min-height:88px;resize:vertical}
+button{cursor:pointer;border:none}
+.hidden{display:none!important}
+.screen{display:none}.screen.active{display:block}
+.shell{max-width:460px;margin:0 auto;min-height:100vh;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(255,255,255,.6)}
+.login-wrap{padding:22px 18px 34px}
+.hero{padding:24px 20px;border-radius:28px;background:linear-gradient(135deg,var(--pri),var(--pri2) 55%,#6ca7ff);color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow);margin-bottom:18px}
+.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero:before{width:150px;height:150px;right:-25px;top:-20px}.hero:after{width:110px;height:110px;left:-25px;bottom:-35px}
+.hero h1{font-size:24px;font-weight:900}
+.login-card,.card,.modal-box{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.login-card{padding:16px}
+.sec-title{font-size:15px;font-weight:900;margin-bottom:12px}
+.member-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.member-btn{padding:12px 8px;border-radius:18px;border:1px solid var(--line);background:#fff;text-align:center}
+.member-btn.sel{background:var(--soft);border-color:#c8d0ff}
+.avatar,.tinyav{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;margin:0 auto}
+.member-name{font-size:11px;font-weight:800;margin-top:8px}.member-role{font-size:9px;color:var(--muted);margin-top:3px}
+.pin-area{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fafbff}
+.pin-dots{display:flex;justify-content:center;gap:8px;margin-bottom:12px}.dot{width:12px;height:12px;border-radius:50%;border:1.5px solid #b6bfd4}.dot.f{background:var(--pri);border-color:var(--pri)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto}.key{padding:13px 0;background:#fff;border-radius:14px;box-shadow:0 8px 16px rgba(0,0,0,.05);font-weight:800}
+.err{color:var(--bad);text-align:center;font-size:12px;min-height:18px;margin-bottom:8px}
+.top{position:sticky;top:0;z-index:10;background:rgba(245,247,251,.93);backdrop-filter:blur(12px);padding:12px 12px 8px;border-bottom:1px solid rgba(223,229,242,.6)}
+.top-inner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:12px 14px;box-shadow:var(--shadow)}
+.ttl{font-size:16px;font-weight:900}.sub{font-size:11px;color:var(--muted);margin-top:2px}
+.userchip{display:flex;align-items:center;gap:8px}.logout{padding:9px 12px;border-radius:12px;background:#f2f4fb;border:1px solid var(--line);font-weight:700}
+.tabs{display:flex;gap:8px;overflow:auto;padding:10px 2px 0}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;padding:10px 14px;border-radius:999px;background:#eff3fb;color:#6a7593;font-weight:800}.tab.active{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:0 6px 14px rgba(70,83,140,.08)}
+.content{padding:14px 14px 28px;display:grid;gap:12px}
+.card{padding:14px}.soft{background:linear-gradient(180deg,#fafbff,#fff)}
+.card-title,.section-head h3{font-size:15px;font-weight:900}.muted{color:var(--muted);font-size:12px;line-height:1.65}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.grid2,.grid3{display:grid;gap:10px}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.metric{padding:12px;border-radius:16px;background:#f8faff;border:1px solid #e8ecf7}.metric .k{font-size:11px;color:var(--muted)}.metric .v{font-size:20px;font-weight:900;margin-top:4px}.metric .s{font-size:11px;color:var(--muted);margin-top:4px}
+.btn,.btn2,.mini-btn{padding:10px 12px;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-weight:800}.btn2{background:#fff;color:var(--text);border:1px solid var(--line)}.danger{background:var(--bad)!important}.ghost{background:#f3f5fb;color:var(--text)}
+.row-actions,.footer-actions,.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.list{display:grid;gap:10px}.item{padding:12px;border-radius:16px;border:1px solid var(--line);background:#fff}.item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.item-name{font-size:14px;font-weight:900}.item-sub,.item-line{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef2ff;color:#4450cf}.badge.ok{background:#eaf9f1;color:#147549}.badge.warn{background:#fff4df;color:#a45f00}.badge.bad{background:#ffe7e8;color:#b42318}.badge.gray{background:#eef1f7;color:#616d88}
+.face-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.face-card{padding:12px;border-radius:18px;border:1px solid var(--line);background:#fff;text-align:center}.face-emoji{font-size:28px;line-height:1}.face-name{font-size:12px;font-weight:900;margin-top:8px}.face-sub{font-size:10px;color:var(--muted);margin-top:5px;min-height:24px}.mini-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:8px}.mini{font-size:9px;padding:3px 6px;border-radius:999px;background:#eef2ff;color:#4a58cc;font-weight:800}.mini.off{background:#f1f3f7;color:#8b95ac}
+.home-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.home-btn{padding:14px;border-radius:18px;text-align:left;background:#fff;border:1px solid var(--line)}.home-btn .h{font-size:13px;font-weight:900}.home-btn .t{font-size:11px;color:var(--muted);margin-top:5px}.home-btn.warn{border-color:#f3c969;background:#fff8e6}.home-btn.bad{border-color:#f0a4a7;background:#fff0f1}.todo-home-card{margin-top:12px}.todo-home-list{display:grid;gap:8px;margin-top:10px}.todo-mini{padding:10px 12px;border-radius:14px;background:#fff;border:1px solid var(--line)}.todo-mini-title{font-size:13px;font-weight:800}.todo-mini-sub{font-size:11px;color:var(--muted);margin-top:4px}.schedule-table{display:grid;grid-template-columns:92px repeat(7,minmax(110px,1fr));gap:8px;font-size:11px;min-width:900px}.schedule-table .hd,.schedule-table .nm,.schedule-table .cell{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#fff}.schedule-table .hd{background:#eef2ff;font-weight:900;text-align:center;position:sticky;top:0;z-index:3}.schedule-table .nm{font-weight:900;display:flex;align-items:center;position:sticky;left:0;z-index:2;background:#fff}.schedule-table .cell{background:#fafcff;min-height:66px}.sched-shift{font-weight:800;color:#4450cf}.sched-evt{margin-top:4px;color:var(--text)}.sched-common{margin-top:4px;color:#a35a00;font-weight:700}.table-wrap{overflow:auto;padding-bottom:4px;max-height:70vh}.pv-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.pv-chip{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:#f8faff;font-size:11px}.pv-chip b{display:block;font-size:14px;margin-top:2px}.group-pick{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.group-pick button{padding:8px 10px;border-radius:999px;background:#eef2ff;color:#4450cf;border:1px solid #d7defa;font-weight:800}.group-pick button.sel{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-color:transparent}.prod-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.prod-btn{padding:10px;border-radius:14px;background:#f8faff;border:1px solid var(--line);text-align:left}.prod-btn .pv{font-size:11px;color:var(--muted);margin-top:2px}.deadline-box{padding:10px 12px;border-radius:16px;background:#fff4df;color:#8a4b00;font-weight:900;font-size:14px;margin-bottom:10px}.todo-chip{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#eef2ff;color:#4450cf;font-size:10px;font-weight:800;margin-left:6px}.todo-chip.hold{background:#fff4df;color:#a45f00}.badge.hold{background:#fff4df;color:#a45f00}
+.field{display:grid;gap:6px}.field label{font-size:11px;font-weight:800;color:#55617e}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.subject{font-size:13px;font-weight:900;padding:8px 10px;border-radius:999px;background:#eff3ff;color:#4b59cf}
+.empty{padding:18px;border-radius:18px;background:#fafbff;border:1px dashed #d2d9e8;color:var(--muted);text-align:center;font-size:12px}
+.table-week{display:grid;gap:8px}.week-row{padding:12px;border:1px solid var(--line);border-radius:16px;background:#fff}.week-row h4{font-size:13px;font-weight:900;margin-bottom:8px}.week-cols{display:grid;grid-template-columns:86px 1fr;gap:8px;font-size:11px}.week-cols div{padding:6px 8px;border-radius:10px;background:#f8faff;border:1px solid #edf1f8}
+.modal{position:fixed;inset:0;background:rgba(25,33,58,.38);display:none;align-items:flex-end;justify-content:center;z-index:40}.modal.open{display:flex}.modal-box{width:100%;max-width:460px;border-radius:24px 24px 0 0;padding:18px;max-height:88vh;overflow:auto}.modal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:16px;font-weight:900}
+.closex{background:#f2f4fb;color:#53607f;border:1px solid var(--line);width:34px;height:34px;border-radius:10px;font-weight:900}
+.small{font-size:11px;color:var(--muted)}
+.deadline-pill{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid #ffd1d4;background:#fff1f2;color:#c1121f;box-shadow:0 4px 10px rgba(229,72,77,.12)}
+.deadline-pill.soon{background:#fff7e6;color:#a45f00;border-color:#f7d694}.deadline-pill.safe{background:#eef7ff;color:#2457a6;border-color:#cfe1ff}
+.deadline-big{padding:10px 12px;border-radius:16px;background:linear-gradient(135deg,#ffebee,#fff5f5);color:#b42318;font-weight:900;font-size:15px;margin-bottom:10px;border:1px solid #ffc9ce;box-shadow:0 6px 16px rgba(229,72,77,.12)}
+.tree-card{cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}.tree-card:hover{transform:translateY(-1px);box-shadow:0 12px 22px rgba(61,77,130,.10)}
+.tree-chevron{font-size:14px;font-weight:900;color:#4450cf;min-width:18px;text-align:center}
+.calendar-wrap{display:grid;gap:12px}.calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}.calendar-title{font-size:16px;font-weight:900}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.cal-weekday{padding:8px 4px;text-align:center;font-size:11px;font-weight:900;color:var(--muted)}.cal-cell{min-height:108px;padding:8px;border-radius:16px;border:1px solid var(--line);background:#fff;display:grid;align-content:start;gap:6px;cursor:pointer;transition:.15s}.cal-cell.empty{background:#f8faff;cursor:default}.cal-cell.has-items{border-color:#cfd7ff;background:#fcfcff}.cal-cell.selected{border:2px solid var(--pri);background:#eef2ff}.cal-cell.today{box-shadow:inset 0 0 0 1px #9fb0ff}.cal-dayline{display:flex;align-items:center;justify-content:space-between;gap:6px}.cal-day{font-size:13px;font-weight:900}.cal-count{font-size:10px;font-weight:800;color:#4450cf;background:#eef2ff;border-radius:999px;padding:2px 6px}.cal-chip{font-size:10px;line-height:1.3;padding:5px 6px;border-radius:10px;background:#f7f9ff;border:1px solid #e4e9f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cal-chip.common{background:#fff6e8;border-color:#f4d08b;color:#8a4b00}.cal-chip.shift{background:#ecfdf3;border-color:#bde5cb;color:#147549}.cal-chip.deadline{background:#fff0f1;border-color:#f0a4a7;color:#b42318;font-weight:900}.selected-day-panel{margin-top:2px}.calendar-legend{display:flex;gap:8px;flex-wrap:wrap}.calendar-legend span{font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#fff}.calendar-legend .lg-common{background:#fff6e8;border-color:#f4d08b;color:#8a4b00}.calendar-legend .lg-shift{background:#ecfdf3;border-color:#bde5cb;color:#147549}.calendar-legend .lg-schedule{background:#f7f9ff;border-color:#e4e9f8;color:#4450cf}.calendar-legend .lg-deadline{background:#fff0f1;border-color:#f0a4a7;color:#b42318}.deadline-strong{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#ffe7e8,#fff5f5);color:#b42318;border:1px solid #ffc9ce;font-size:11px;font-weight:900}.section-divider{height:1px;background:#edf1f8;margin:12px 0}@media(min-width:900px){ .shell{max-width:720px}.face-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.home-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.member-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section id="loginScreen" class="screen active">
+    <div class="login-wrap">
+      <div class="hero"><h1>PFS Manager v34</h1></div>
+      <div class="login-card">
+        <div class="sec-title">メンバーを選択</div>
+        <div id="memberGrid" class="member-grid"></div>
+        <div id="pinArea" class="pin-area hidden">
+          <div id="loginErr" class="err"></div>
+          <div id="pinDots" class="pin-dots"></div>
+          <div id="pinPad" class="pad"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="appScreen" class="screen">
+    <div class="top">
+      <div class="top-inner">
+        <div>
+          <div id="pageTitle" class="ttl"></div>
+          <div id="pageSub" class="sub"></div>
+        </div>
+        <div class="userchip">
+          <div id="userAv" class="tinyav"></div>
+          <button class="logout" onclick="openPasswordChange()">パスワード変更</button>
+          <button class="logout" onclick="logout()">ログアウト</button>
+        </div>
+      </div>
+      <div id="tabs" class="tabs"></div>
+    </div>
+    <div id="content" class="content"></div>
+  </section>
+</div>
+
+<div id="modal" class="modal"><div class="modal-box"><div class="modal-title"><span id="modalTitle"></span><button class="closex" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+
+<script>
+const STORAGE_KEY = 'pfs_manager_v34_data';
+const INITIAL_USERS = [
+  // 202604 LOSをもとに、ツール利用メンバーだけ見える形に圧縮した配下関係
+  ['shintaro','慎太郎','0000','leader',null],
+  ['kaede','カエデ','2222','member','shintaro'],
+  ['mayu','マユ','3333','member','kaede'],
+  ['hikari','ヒカリ','6789','member','mayu'],
+  ['runa','ルナ','4444','member','mayu'],
+  ['shuta','シュウタ','1234','member','runa'],
+  ['yusuke','ユウスケ','2345','member','runa'],
+  ['sayurin','さゆりん','5678','member','yusuke'],
+  ['hiyori','ヒヨリ','7777','member','runa'],
+  ['haruhiko','ハルヒコ','8888','member','hiyori'],
+  ['hayate','ハヤテ','9999','member','haruhiko'],
+  ['kenta','ケンタ','5555','member','runa'],
+  ['ryu','リュウ','6666','member','kenta'],
+  ['haruko','ハルコ','1124','member','shintaro'],
+  ['fuuka','フウカ','1125','member','haruko']
+];
+const PARENT_FIX = Object.fromEntries(INITIAL_USERS.map(([id,_n,_p,_r,parentId])=>[id,parentId]));
+const IMPORTED_INITIAL_STATE = {"users":[{"id":"5226640","nick":"慎太郎","pin":"0000","role":"leader","parentId":"","actualAwardPV":280632,"goalTotalPV":54885,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"142672","nick":"カエデ","pin":"2222","role":"member","parentId":"5226640","actualAwardPV":54650,"goalTotalPV":1000000,"goalConsumablePV":500000,"goalMemberUp":2,"actualMemberUp":0,"goalFrontUp":2,"goalGroupUp":10,"actualFrontUp":0},{"id":"326158","nick":"マユ","pin":"3333","role":"member","parentId":"142672","actualAwardPV":54650,"goalTotalPV":800000,"goalConsumablePV":360000,"goalMemberUp":2,"actualMemberUp":0,"goalFrontUp":2,"goalGroupUp":10,"actualFrontUp":0},{"id":"474713","nick":"ヒカリ","pin":"6789","role":"member","parentId":"326158","actualAwardPV":0,"goalTotalPV":30000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"366832","nick":"ルナ","pin":"4444","role":"member","parentId":"326158","actualAwardPV":28850,"goalTotalPV":600000,"goalConsumablePV":240000,"goalMemberUp":1,"actualMemberUp":0,"goalFrontUp":1,"goalGroupUp":3,"actualFrontUp":0},{"id":"629910","nick":"シュウタ","pin":"1234","role":"member","parentId":"366832","actualAwardPV":22920,"goalTotalPV":90000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"752435","nick":"ユウスケ","pin":"2345","role":"member","parentId":"5226640","actualAwardPV":0,"goalTotalPV":30000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"782955","nick":"さゆりん","pin":"5678","role":"member","parentId":"752435","actualAwardPV":0,"goalTotalPV":30000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"620503","nick":"ヒヨリ","pin":"7777","role":"member","parentId":"366832","actualAwardPV":0,"goalTotalPV":180000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"710176","nick":"ハルヒコ","pin":"8888","role":"member","parentId":"620503","actualAwardPV":0,"goalTotalPV":90000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"721489","nick":"ハヤテ","pin":"9999","role":"member","parentId":"710176","actualAwardPV":0,"goalTotalPV":30000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"689241","nick":"ケンタ","pin":"5555","role":"member","parentId":"366832","actualAwardPV":5930,"goalTotalPV":180000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"762617","nick":"リュウ","pin":"6666","role":"member","parentId":"689241","actualAwardPV":0,"goalTotalPV":60000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"9806551","nick":"ハルコ","pin":"1124","role":"member","parentId":"5226640","actualAwardPV":85800,"goalTotalPV":45372,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0},{"id":"9640167","nick":"フウカ","pin":"1125","role":"member","parentId":"5226640","actualAwardPV":25670,"goalTotalPV":30000,"goalConsumablePV":0,"goalMemberUp":0,"actualMemberUp":0,"goalFrontUp":0,"goalGroupUp":0,"actualFrontUp":0}],"loggedIn":null,"updates":{"5226640":{"meeting":"","schedule":"","pv":"","prospect":"","todo":""},"142672":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"326158":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"474713":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"366832":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"629910":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"752435":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"782955":{"meeting":"","schedule":"","pv":"","prospect":"","todo":""},"620503":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"710176":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"721489":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"689241":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"762617":{"meeting":"","schedule":"","pv":"","prospect":"2026-04-01T00:00:00.000Z","todo":""},"9806551":{"meeting":"","schedule":"","pv":"","prospect":"","todo":""},"9640167":{"meeting":"","schedule":"","pv":"","prospect":"","todo":""}},"meetings":{"5226640":[],"142672":[],"326158":[],"474713":[],"366832":[],"629910":[],"752435":[],"782955":[],"620503":[],"710176":[],"721489":[],"689241":[],"762617":[],"9806551":[],"9640167":[]},"todos":{"5226640":[],"142672":[],"326158":[],"474713":[],"366832":[],"629910":[],"752435":[],"782955":[],"620503":[],"710176":[],"721489":[],"689241":[],"762617":[],"9806551":[],"9640167":[]},"prospects":{"5226640":[],"142672":[{"id":"xl-142672-0","name":"のぞみ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"BAR参加済","nextActionDue":"2026-04-15","memo":"週末で会えるようにする / とうま高校同級生/24歳/大豆島 / みさきちゃん"},{"id":"xl-142672-1","name":"まい","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"返信来なかったらなし","nextActionDue":"2026-04-05","memo":"DMでやり取り / 絵描いてる / みさきさん"},{"id":"xl-142672-2","name":"ちえみ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"やりとり中","nextActionDue":"2026-04-05","memo":"出会いたて/エステや美容に興味あり / 24歳/歯科衛生士/上松 / 霜田さん"},{"id":"xl-142672-3","name":"あやの","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"ご飯アポとる","nextActionDue":"2026-04-04","memo":"彼氏と別れた出会い求めてる/中古のミニクラブマン納車した / 25歳/保育士/長野市三輪/同棲中 / ななみ"},{"id":"xl-142672-4","name":"りな","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"連絡まち","nextActionDue":"2026-04-04","memo":"久しぶりに連絡とった / 27歳/看護師？/須坂/高校同級生 / あやね"}],"326158":[{"id":"xl-326158-0","name":"えいこ(叔母)","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"セルアクト/PMASの話","nextActionDue":"2026-03-11","memo":"疲れを次の日に持ち越しやすい。ダイエットサプリ系を飲んだこと有り、スウィートショットもお気に入り / ウコン、Bプラス(糖質、アルコール分解) / 吉原"},{"id":"xl-326158-1","name":"戸谷さん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"全デモ練習させてお願いする","nextActionDue":"2026-03-10","memo":"先月仕事の昼休憩中に会って以来 / 戸谷さん昼休憩中に合う/まず今の悩み、相手の話聞いた上で全デモ依頼できそうならする / ゆうじ"},{"id":"xl-326158-2","name":"なぎ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"","nextActionDue":"","memo":"生き方についての話で結構意意見合う印象 / 高砂寿司の娘/同い年/友達の友達"},{"id":"xl-326158-3","name":"りんこ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"","nextActionDue":"","memo":"なつみ、かほ同級生"},{"id":"xl-326158-4","name":"かほ","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"PMASの話してみる","nextActionDue":"2026-04-15","memo":""}],"474713":[{"id":"xl-474713-0","name":"あやの","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"12月中","nextActionDue":"2025-12-31","memo":"ひかり連絡中。返事待ち。"}],"366832":[{"id":"xl-366832-0","name":"さち","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"連絡した。連絡待ち。明日帰ってこなかったら消す。","nextActionDue":"2026-04-05","memo":"2年前にさんの紹介で仲良くなった。当時アプローチ途中で断念。理由は好き好きアピールが嫌だった。"},{"id":"xl-366832-1","name":"ぱる","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"連絡帰ってきた。いまご飯いけるか確認中。","nextActionDue":"2026-04-05","memo":"3年前友達がナンパしてから仲良くなった。彼氏が出来て疎遠になった。今の状況はわからないので確認。"},{"id":"xl-366832-2","name":"おとうさま","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"いえ行った時に化粧水.乳液の体感を聞く。","nextActionDue":"2026-04-12","memo":"なぜだか今母と一緒にスクラブ使ってるみたい。"},{"id":"xl-366832-3","name":"母","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"製品渡す+1製品オススメorPMAS","nextActionDue":"2026-04-12","memo":"明日電話する。パック持って行ったが時間バタバタでパック会できなかった。次回一緒にやる。"},{"id":"xl-366832-4","name":"はじめ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"連絡返ってきた！結婚したと。ご飯誘った→連絡まち。","nextActionDue":"2026-04-05","memo":"小中の学校一緒。高校卒業してからはあってない。連絡してみる。"}],"629910":[{"id":"xl-629910-0","name":"りゅうかさん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"気になってる製品がないか確認連絡","nextActionDue":"2026-04-04","memo":"28歳/会社員"},{"id":"xl-629910-1","name":"かずこ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"","nextActionDue":"2026-04-03","memo":"19歳/自営業"},{"id":"xl-629910-2","name":"武田さん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"お手伝い","nextActionDue":"2026-04-03","memo":"35歳主婦 / 母"},{"id":"xl-629910-3","name":"コウキ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ取り","nextActionDue":"2026/04/0","memo":"20代 運送業 / 武田さん"},{"id":"xl-629910-4","name":"Tomorrowママさん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"追加で欲しい製品があるか確認をとる。お店以外であえるようにする。何か力仕事でお手伝いさせてください！","nextActionDue":"2026-04-04","memo":""}],"752435":[{"id":"xl-752435-0","name":"げんや","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"バー誘ってみる。４月になると落ち着くと言ってたため。","nextActionDue":"2026-04-18","memo":"ニーズ不明。 / 23歳/医療関係/街コンで出会う。"},{"id":"xl-752435-1","name":"のすけ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"バー参加確定。","nextActionDue":"2026-04-15","memo":"今の会社に長く勤める。 / 24歳/鉄道関係/ジガーで出会う。 / みゆき"},{"id":"xl-752435-2","name":"あきら","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"経済アポ","nextActionDue":"2026-04-11","memo":"経済的に余裕を持つ。痩せて夏に水着になる。彼女作る。35歳までに結婚したい。 / 27歳/建築業/トナで知り合う。 / やまいたくみ"},{"id":"xl-752435-3","name":"ちんた","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"バーに誘ってみる。","nextActionDue":"2026-04-15","memo":"お酒好き。ダーツ好き。歳下の女の子好き。 / 31歳/飲食/ジガーで出会う。 / ちんた"},{"id":"xl-752435-4","name":"さき","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ→目上の女性と仲良くなったほうがいいよ提案","nextActionDue":"2026-04-18","memo":"楽しいことが好き。お酒好き。大学3年で小売をゴールにする。来年の3月に登録をゴールにする。 / 21歳/看護学生/ジガーで出会う。"}],"782955":[{"id":"xl-782955-0","name":"母","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"リキッドファンデ新しく購入したので試してみる","nextActionDue":"2026-04-05","memo":"全デモで気になった製品を小売で購入、ファンデはやっぱり少し肌が痒くなってしまった / 母、他のネットワークビジネスやってる"},{"id":"xl-782955-1","name":"なおちゃん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"シフトが出たら次会う予定組む、予定確認中","nextActionDue":"2026-04-07","memo":"接客業なので美容気にしている/お金と時間が自由になったら旅行に行きたい/光るリップに興味あり / 26歳/元職場の後輩/軽井沢でアパレル"},{"id":"xl-782955-2","name":"もえちゃん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"ご飯","nextActionDue":"2026-04-09","memo":"転職活動中で人生観について語った / 29歳/高校のクラスメイト/事務職"},{"id":"xl-782955-3","name":"そうたろう","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"会う予定立てる","nextActionDue":"2026-04-10","memo":"会うの4回目/旅行が好き / 街コンで出会った"},{"id":"xl-782955-4","name":"りょうが","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"会う予定立てる","nextActionDue":"2026-04-10","memo":"会うの3回目/筋トレ？ / そうたろうくんの友達"}],"620503":[{"id":"xl-620503-0","name":"みゆ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"ご飯or飲み確定させる","nextActionDue":"2026-04-04","memo":"ゆうか"},{"id":"xl-620503-1","name":"まりん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"グロスやリップを使って見せてみる。飴あげる。","nextActionDue":"2026-04-06","memo":"プランパー、グロス見せる / 高校同級生/元メンバー/中野イオン勤務 / もとみ"},{"id":"xl-620503-2","name":"なち","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"もう一度電話してみる","nextActionDue":"2026-04-05","memo":"小売で / 中学の同級生/彼氏いる/大卒"},{"id":"xl-620503-3","name":"まゆ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"ご飯or飲み確定させる","nextActionDue":"2026-04-04","memo":""},{"id":"xl-620503-4","name":"かいちん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"電話する","nextActionDue":"","memo":"弟"}],"710176":[{"id":"xl-710176-0","name":"なおや","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポとる 返信待ち 追いLINEする","nextActionDue":"2026-04-05","memo":"新光/1人暮し/童貞/ゲーム・アニメ"},{"id":"xl-710176-1","name":"ゆうあ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポとる 追いLINE アレルテクトおすそ分けしてみる","nextActionDue":"2026-04-05","memo":"日産/1人暮し/彼女いる/ワカサギ釣り・カラオケ"},{"id":"xl-710176-2","name":"家族","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"アレルテクト渡す 父にメディブロック貸してみる","nextActionDue":"2026-04-05","memo":""},{"id":"xl-710176-3","name":"ざっきー","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"動画送り済み5日までに感想貰う 感想来たらアポとる","nextActionDue":"2026-04-05","memo":"投資に興味ある / 富士通工場/ゴルフ・釣り/童貞/実家"},{"id":"xl-710176-4","name":"かずや","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポとる 返信待ち 追いLINE","nextActionDue":"2026-04-05","memo":"内装の仕事/1人暮し/童貞/ゲーム・アニメ / プロスペ探し"}],"721489":[{"id":"xl-721489-0","name":"たくみ","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ取る。ニーズを探る。","nextActionDue":"2026-02-14","memo":"同い年、会える機会少なめ"},{"id":"xl-721489-1","name":"りゅうや","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ取る。ニーズを探る。","nextActionDue":"2026-02-14","memo":"23歳で、高校の同級生、同じ会社"},{"id":"xl-721489-2","name":"りょうた","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ取る　ニーズを探る。","nextActionDue":"2026-02-13","memo":"一個上の先輩で同じ会社最近一緒にバイトを始めた。会える機会多め。"},{"id":"xl-721489-3","name":"かいと","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"飯アポ取るBAR誘う","nextActionDue":"2026-02-14","memo":"コンビニでばったり会った、ご飯誘われてる。"}],"689241":[{"id":"xl-689241-0","name":"中沢くん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"次アポ決める！","nextActionDue":"2026-04-05","memo":"将来の事は特に考えてない　何とかなるスタイル！ / 同僚/21歳/彼女いない/バスケ/旅行 / いっちー"},{"id":"xl-689241-1","name":"プロスペ探し","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"BAR動員","nextActionDue":"2026-04-08","memo":"ニーズ探れてない / 21歳/俊英/トヨタ/明るい性格 / カッキー"},{"id":"xl-689241-2","name":"親","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"父と飲みに行く","nextActionDue":"2026-04-11","memo":"入浴剤は小売できた / たつき"},{"id":"xl-689241-3","name":"うえけん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"BAR後に会う","nextActionDue":"2026-04-04","memo":"合コンで仲良くなった！ / 彼女なし/同級/"},{"id":"xl-689241-4","name":"優里","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"BAR来る","nextActionDue":"2026-04-06","memo":"スキンケアさっぱりライン渡した / 28歳/高校同級生/童貞/彼女欲しい"}],"762617":[{"id":"xl-762617-0","name":"朋樹くん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"7日or11日飯提案中","nextActionDue":"2026-04-07","memo":"AW営業で距離を置いてる状態。サシで状態緩和したい。 / 23歳/弁当屋でバイト/土日休み / ゆーと(5月〜"},{"id":"xl-762617-1","name":"くわばらかずま","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"7日or11日飯提案中","nextActionDue":"2026-04-07","memo":"雰囲気良い感じ。前回のバーは体調不良のためお休み / 23歳/トラック運転手/火土休み / 石井さん(近所の人)"},{"id":"xl-762617-2","name":"あらちゃん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"昼飯確定👍","nextActionDue":"2026-04-11","memo":"3月忙しくて飲み出てない。4月になって落ち着いた。BARはまだ人見知り発動 / 32歳/水日休み/長野市実家暮らし/食品工場&新聞配達 / ゆり(12日×)"},{"id":"xl-762617-3","name":"プロスペ探し","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"LINE連絡して一番反応良かった人をピックアップする","nextActionDue":"2026-04-07","memo":"りさ(7日、11日×)"},{"id":"xl-762617-4","name":"母親","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"シャンプーなど体感聞く。","nextActionDue":"2026-04-11","memo":"父→緑茶、入浴剤。母→シャンプー発注済。頻度的に4月末か5月上旬に発注か？ / 母親アンチ、父親Aw理解あるが、ビジネスは× / 和田くん(18日×)"}],"9806551":[{"id":"xl-9806551-0","name":"かな","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"オンライン、腸活、妊娠栄養話す","nextActionDue":"2026-04-03","memo":"ゆうか"},{"id":"xl-9806551-1","name":"おばさん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"水空気話す、調味料洗剤発注狙う","nextActionDue":"2026-04-13","memo":"小売り / 60代、農業 / 静香さん"},{"id":"xl-9806551-2","name":"座間さん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"PMAS話す","nextActionDue":"2026-04-10","memo":"かおりん"},{"id":"xl-9806551-3","name":"中川さん","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"ピーマス、腸活話す","nextActionDue":"2026-04-07","memo":"小売り / 中川さん"},{"id":"xl-9806551-4","name":"あやめ","category":"プロスペ","grade":"A","expectedPV":0,"apptFixed":true,"nextAction":"小売り渡す、PMAS話すアポとる","nextActionDue":"2026-04-13","memo":"amway知らない / Amway知っているプロバイオ、プロテイン小売り / おばさん"},{"id":"xl-9806551-5","name":"わこさん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"腸活、PMAS話すアポとる","nextActionDue":"2026-04-03","memo":"ドリンクガード差し入れ / 美容室経営 / 弟"},{"id":"xl-9806551-6","name":"松田美穂さん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"値上がり製品話す、ピーマス説明","nextActionDue":"2026-04-05","memo":"ABO / ゆめか"},{"id":"xl-9806551-7","name":"あっちゃん","category":"プロスペ","grade":"B","expectedPV":0,"apptFixed":false,"nextAction":"アポ取り中、ピーマス、IR","nextActionDue":"2026-04-07","memo":"てつさん"}],"9640167":[]},"schedules":{"5226640":[],"142672":[{"id":"sched_142672_1","date":"2026-04-01","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_2","date":"2026-04-02","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_3","date":"2026-04-03","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_5","date":"2026-04-05","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_6","date":"2026-04-06","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_7","date":"2026-04-07","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_8","date":"2026-04-08","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_9","date":"2026-04-09","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_10","date":"2026-04-10","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_13","date":"2026-04-13","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_14","date":"2026-04-14","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_15","date":"2026-04-15","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_16","date":"2026-04-16","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_17","date":"2026-04-17","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_20","date":"2026-04-20","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_21","date":"2026-04-21","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_22","date":"2026-04-22","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_23","date":"2026-04-23","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_24","date":"2026-04-24","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_27","date":"2026-04-27","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_28","date":"2026-04-28","time":"","title":"シフト","note":"日勤"},{"id":"sched_142672_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_142672_30","date":"2026-04-30","time":"","title":"シフト","note":"日勤"}],"326158":[{"id":"sched_326158_1","date":"2026-04-01","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_2","date":"2026-04-02","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_3","date":"2026-04-03","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_4","date":"2026-04-04","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_5","date":"2026-04-05","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_6","date":"2026-04-06","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_7","date":"2026-04-07","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_8","date":"2026-04-08","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_9","date":"2026-04-09","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_10","date":"2026-04-10","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_12","date":"2026-04-12","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_13","date":"2026-04-13","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_14","date":"2026-04-14","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_15","date":"2026-04-15","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_16","date":"2026-04-16","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_17","date":"2026-04-17","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_18","date":"2026-04-18","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_20","date":"2026-04-20","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_21","date":"2026-04-21","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_22","date":"2026-04-22","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_23","date":"2026-04-23","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_24","date":"2026-04-24","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_25","date":"2026-04-25","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_27","date":"2026-04-27","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_28","date":"2026-04-28","time":"","title":"シフト","note":"日勤"},{"id":"sched_326158_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_326158_30","date":"2026-04-30","time":"","title":"シフト","note":"日勤"}],"474713":[],"366832":[{"id":"sched_366832_1","date":"2026-04-01","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_2","date":"2026-04-02","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_3","date":"2026-04-03","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_5","date":"2026-04-05","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_6","date":"2026-04-06","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_7","date":"2026-04-07","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_8","date":"2026-04-08","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_9","date":"2026-04-09","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_10","date":"2026-04-10","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_13","date":"2026-04-13","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_14","date":"2026-04-14","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_15","date":"2026-04-15","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_16","date":"2026-04-16","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_17","date":"2026-04-17","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_20","date":"2026-04-20","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_21","date":"2026-04-21","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_22","date":"2026-04-22","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_23","date":"2026-04-23","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_24","date":"2026-04-24","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_27","date":"2026-04-27","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_28","date":"2026-04-28","time":"","title":"シフト","note":"日勤"},{"id":"sched_366832_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_366832_30","date":"2026-04-30","time":"","title":"シフト","note":"日勤"}],"629910":[{"id":"sched_629910_1","date":"2026-04-01","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_2","date":"2026-04-02","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_3","date":"2026-04-03","time":"","title":"シフト","note":"日勤"},{"id":"sched_629910_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_5","date":"2026-04-05","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_6","date":"2026-04-06","time":"","title":"シフト","note":"日勤"},{"id":"sched_629910_7","date":"2026-04-07","time":"","title":"シフト","note":"日勤"},{"id":"sched_629910_8","date":"2026-04-08","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_9","date":"2026-04-09","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_10","date":"2026-04-10","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_13","date":"2026-04-13","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_14","date":"2026-04-14","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_15","date":"2026-04-15","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_16","date":"2026-04-16","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_17","date":"2026-04-17","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_20","date":"2026-04-20","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_21","date":"2026-04-21","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_22","date":"2026-04-22","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_23","date":"2026-04-23","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_24","date":"2026-04-24","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_27","date":"2026-04-27","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_28","date":"2026-04-28","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_629910_30","date":"2026-04-30","time":"","title":"シフト","note":"休み"}],"752435":[{"id":"sched_752435_1","date":"2026-04-01","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_2","date":"2026-04-02","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_3","date":"2026-04-03","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_4","date":"2026-04-04","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_5","date":"2026-04-05","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_6","date":"2026-04-06","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_7","date":"2026-04-07","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_8","date":"2026-04-08","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_9","date":"2026-04-09","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_10","date":"2026-04-10","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_752435_12","date":"2026-04-12","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_13","date":"2026-04-13","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_14","date":"2026-04-14","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_15","date":"2026-04-15","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_16","date":"2026-04-16","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_17","date":"2026-04-17","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_752435_19","date":"2026-04-19","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_20","date":"2026-04-20","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_21","date":"2026-04-21","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_22","date":"2026-04-22","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_23","date":"2026-04-23","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_24","date":"2026-04-24","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_752435_26","date":"2026-04-26","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_27","date":"2026-04-27","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_28","date":"2026-04-28","time":"","title":"シフト","note":"遅番"},{"id":"sched_752435_29","date":"2026-04-29","time":"","title":"シフト","note":"日勤"},{"id":"sched_752435_30","date":"2026-04-30","time":"","title":"シフト","note":"日勤"}],"782955":[{"id":"sched_782955_1","date":"2026-04-01","time":"","title":"シフト","note":"休み"},{"id":"sched_782955_2","date":"2026-04-09","time":"","title":"シフト","note":"休み"},{"id":"sched_782955_3","date":"2026-04-14","time":"","title":"シフト","note":"休み"},{"id":"sched_782955_4","date":"2026-04-20","time":"","title":"シフト","note":"休み"},{"id":"sched_782955_5","date":"2026-04-23","time":"","title":"シフト","note":"休み"},{"id":"sched_782955_6","date":"2026-04-28","time":"","title":"シフト","note":"休み"}],"620503":[{"id":"sched_620503_1","date":"2026-04-01","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_2","date":"2026-04-02","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_3","date":"2026-04-03","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_5","date":"2026-04-05","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_6","date":"2026-04-06","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_7","date":"2026-04-07","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_8","date":"2026-04-08","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_9","date":"2026-04-09","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_10","date":"2026-04-10","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_13","date":"2026-04-13","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_14","date":"2026-04-14","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_15","date":"2026-04-15","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_16","date":"2026-04-16","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_17","date":"2026-04-17","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_20","date":"2026-04-20","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_21","date":"2026-04-21","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_22","date":"2026-04-22","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_23","date":"2026-04-23","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_24","date":"2026-04-24","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_27","date":"2026-04-27","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_28","date":"2026-04-28","time":"","title":"シフト","note":"日勤"},{"id":"sched_620503_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_620503_30","date":"2026-04-30","time":"","title":"シフト","note":"日勤"}],"710176":[{"id":"sched_710176_1","date":"2026-04-01","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_2","date":"2026-04-02","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_3","date":"2026-04-03","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_4","date":"2026-04-04","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_5","date":"2026-04-05","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_6","date":"2026-04-06","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_7","date":"2026-04-07","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_8","date":"2026-04-08","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_9","date":"2026-04-09","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_10","date":"2026-04-10","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_13","date":"2026-04-13","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_14","date":"2026-04-14","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_15","date":"2026-04-15","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_16","date":"2026-04-16","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_17","date":"2026-04-17","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_18","date":"2026-04-18","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_19","date":"2026-04-19","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_20","date":"2026-04-20","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_21","date":"2026-04-21","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_22","date":"2026-04-22","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_23","date":"2026-04-23","time":"","title":"シフト","note":"夜勤"},{"id":"sched_710176_24","date":"2026-04-24","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_27","date":"2026-04-27","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_28","date":"2026-04-28","time":"","title":"シフト","note":"早番"},{"id":"sched_710176_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_710176_30","date":"2026-04-30","time":"","title":"シフト","note":"休み"}],"721489":[],"689241":[{"id":"sched_689241_1","date":"2026-04-01","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_2","date":"2026-04-02","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_3","date":"2026-04-03","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_5","date":"2026-04-05","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_6","date":"2026-04-06","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_7","date":"2026-04-07","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_8","date":"2026-04-08","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_9","date":"2026-04-09","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_10","date":"2026-04-10","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_12","date":"2026-04-12","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_13","date":"2026-04-13","time":"","title":"シフト","note":"遅番"},{"id":"sched_689241_14","date":"2026-04-14","time":"","title":"シフト","note":"遅番"},{"id":"sched_689241_15","date":"2026-04-15","time":"","title":"シフト","note":"遅番"},{"id":"sched_689241_16","date":"2026-04-16","time":"","title":"シフト","note":"遅番"},{"id":"sched_689241_17","date":"2026-04-17","time":"","title":"シフト","note":"遅番"},{"id":"sched_689241_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_19","date":"2026-04-19","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_20","date":"2026-04-20","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_21","date":"2026-04-21","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_22","date":"2026-04-22","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_23","date":"2026-04-23","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_24","date":"2026-04-24","time":"","title":"シフト","note":"早番"},{"id":"sched_689241_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_26","date":"2026-04-26","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_27","date":"2026-04-27","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_28","date":"2026-04-28","time":"","title":"シフト","note":"夜勤"},{"id":"sched_689241_29","date":"2026-04-29","time":"","title":"シフト","note":"休み"},{"id":"sched_689241_30","date":"2026-04-30","time":"","title":"シフト","note":"休み"}],"762617":[{"id":"sched_762617_1","date":"2026-04-01","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_2","date":"2026-04-02","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_3","date":"2026-04-03","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_4","date":"2026-04-04","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_5","date":"2026-04-05","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_6","date":"2026-04-06","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_7","date":"2026-04-07","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_8","date":"2026-04-08","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_9","date":"2026-04-09","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_10","date":"2026-04-10","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_11","date":"2026-04-11","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_12","date":"2026-04-12","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_13","date":"2026-04-13","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_14","date":"2026-04-14","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_15","date":"2026-04-15","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_16","date":"2026-04-16","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_17","date":"2026-04-17","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_18","date":"2026-04-18","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_19","date":"2026-04-19","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_20","date":"2026-04-20","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_21","date":"2026-04-21","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_22","date":"2026-04-22","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_23","date":"2026-04-23","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_24","date":"2026-04-24","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_25","date":"2026-04-25","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_26","date":"2026-04-26","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_27","date":"2026-04-27","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_28","date":"2026-04-28","time":"","title":"シフト","note":"休み"},{"id":"sched_762617_29","date":"2026-04-29","time":"","title":"シフト","note":"夜勤"},{"id":"sched_762617_30","date":"2026-04-30","time":"","title":"シフト","note":"夜勤"}],"9806551":[],"9640167":[]},"pvManual":{"5226640":[],"142672":[],"326158":[],"474713":[],"366832":[],"629910":[],"752435":[],"782955":[],"620503":[],"710176":[],"721489":[],"689241":[],"762617":[],"9806551":[],"9640167":[]},"commonSchedules":[],"actualPVImportedAt":"2026-04 必要データ反映","feed":[{"time":"2026-04-03 09:00","text":"初期データを反映しました","tag":"初期設定"},{"time":"2026-04-05 00:00","text":"v33: プロスペ・PV計画データをExcelから再インポート","tag":"データ更新"}]};
+const LOS_ROWS = [{"sponsorId": "5193899", "id": "5226640", "name": "松岡 慎太郎", "actualPV": 280632}, {"sponsorId": "5226640", "id": "5286242", "name": "中野 宏昭", "actualPV": 128200}, {"sponsorId": "5286242", "id": "6849359", "name": "西澤 裕美", "actualPV": 104610}, {"sponsorId": "6849359", "id": "9314155", "name": "多田 愛穂", "actualPV": 104610}, {"sponsorId": "9314155", "id": "142672", "name": "池田 楓", "actualPV": 54650}, {"sponsorId": "142672", "id": "326158", "name": "岡田 真優", "actualPV": 54650}, {"sponsorId": "326158", "id": "366832", "name": "細尾 瑠那", "actualPV": 28850}, {"sponsorId": "366832", "id": "689241", "name": "植原 健太", "actualPV": 5930}, {"sponsorId": "689241", "id": "707601", "name": "中村 純平", "actualPV": 1580}, {"sponsorId": "689241", "id": "762617", "name": "小林 竜大", "actualPV": 0}, {"sponsorId": "689241", "id": "769913", "name": "非公開のユーザー", "actualPV": 0}, {"sponsorId": "366832", "id": "620503", "name": "宮澤 日和", "actualPV": 0}, {"sponsorId": "620503", "id": "710176", "name": "成澤 晴彦", "actualPV": 0}, {"sponsorId": "710176", "id": "721489", "name": "星沢 颯", "actualPV": 0}, {"sponsorId": "366832", "id": "671650", "name": "宮原 翔平", "actualPV": 0}, {"sponsorId": "671650", "id": "752435", "name": "藤井 祐輔", "actualPV": 0}, {"sponsorId": "752435", "id": "782955", "name": "根岸 小百合", "actualPV": 0}, {"sponsorId": "366832", "id": "629910", "name": "高野 周太", "actualPV": 22920}, {"sponsorId": "326158", "id": "346705", "name": "岡田 雅子", "actualPV": 0}, {"sponsorId": "326158", "id": "474713", "name": "石坂 日香里", "actualPV": 0}, {"sponsorId": "142672", "id": "609904", "name": "山崎 寛正", "actualPV": 0}, {"sponsorId": "609904", "id": "766223", "name": "山﨑 亜子", "actualPV": 0}, {"sponsorId": "142672", "id": "450211", "name": "大槻 佳代子", "actualPV": 0}, {"sponsorId": "9314155", "id": "9317370", "name": "大滝 佑果", "actualPV": 17640}, {"sponsorId": "9317370", "id": "9388330", "name": "小林 康秀", "actualPV": 17640}, {"sponsorId": "9388330", "id": "9126297", "name": "竹田 稚菜", "actualPV": 13100}, {"sponsorId": "9126297", "id": "217129", "name": "柿木 京土", "actualPV": 0}, {"sponsorId": "217129", "id": "549495", "name": "春原 美枝子", "actualPV": 0}, {"sponsorId": "217129", "id": "671483", "name": "杉谷 京三", "actualPV": 0}, {"sponsorId": "9126297", "id": "213613", "name": "林 奈奈", "actualPV": 13100}, {"sponsorId": "9388330", "id": "9570952", "name": "種村 昌幸", "actualPV": 4540}, {"sponsorId": "9570952", "id": "112352", "name": "今野 友則", "actualPV": 0}, {"sponsorId": "9570952", "id": "384076", "name": "中村 亜弥", "actualPV": 0}, {"sponsorId": "9570952", "id": "9145492", "name": "氷熊 希枝子", "actualPV": 4540}, {"sponsorId": "9570952", "id": "9592108", "name": "種村 嘉寿江&孝一", "actualPV": 0}, {"sponsorId": "9388330", "id": "549997", "name": "鈴木 尭之", "actualPV": 0}, {"sponsorId": "9388330", "id": "8927156", "name": "藤田 智", "actualPV": 0}, {"sponsorId": "9388330", "id": "9751957", "name": "平本 亮", "actualPV": 0}, {"sponsorId": "9388330", "id": "9752311", "name": "伊藤 美穂", "actualPV": 0}, {"sponsorId": "9314155", "id": "9631983", "name": "丸山 和希", "actualPV": 32320}, {"sponsorId": "9631983", "id": "9640167", "name": "鈴木 蕗子", "actualPV": 25670}, {"sponsorId": "9640167", "id": "9848458", "name": "小山 佳子", "actualPV": 25670}, {"sponsorId": "9848458", "id": "289090", "name": "北村 康輔", "actualPV": 0}, {"sponsorId": "289090", "id": "428660", "name": "園田 航平", "actualPV": 0}, {"sponsorId": "9848458", "id": "8970530", "name": "竹村 早紀", "actualPV": 0}, {"sponsorId": "9314155", "id": "9841267", "name": "春日 稔", "actualPV": 0}, {"sponsorId": "9841267", "id": "9864823", "name": "山岸 美波", "actualPV": 0}, {"sponsorId": "9314155", "id": "107758", "name": "柳澤 舞", "actualPV": 0}, {"sponsorId": "9314155", "id": "686493", "name": "大瀧 美香", "actualPV": 0}, {"sponsorId": "9314155", "id": "9765936", "name": "尾澤 和樹", "actualPV": 0}, {"sponsorId": "5286242", "id": "716099", "name": "中村 みお", "actualPV": 0}, {"sponsorId": "5286242", "id": "9126911", "name": "鈴木 伸昂", "actualPV": 0}, {"sponsorId": "5226640", "id": "5833182", "name": "大久保 恭子", "actualPV": 125730}, {"sponsorId": "5833182", "id": "6366460", "name": "大熊 仁美", "actualPV": 119080}, {"sponsorId": "6366460", "id": "6844082", "name": "松浦 昭夫", "actualPV": 28090}, {"sponsorId": "6844082", "id": "6939227", "name": "永井 一美", "actualPV": 28090}, {"sponsorId": "6939227", "id": "8947212", "name": "名取 梓&拳", "actualPV": 13300}, {"sponsorId": "8947212", "id": "8961492", "name": "高津 琢磨", "actualPV": 0}, {"sponsorId": "6939227", "id": "6985079", "name": "戸祭 洋一&智恵美", "actualPV": 0}, {"sponsorId": "6939227", "id": "9375620", "name": "古厩 孝彦", "actualPV": 14790}, {"sponsorId": "6844082", "id": "6909185", "name": "谷川 哲也", "actualPV": 0}, {"sponsorId": "6844082", "id": "9406552", "name": "田中 沙弥", "actualPV": 0}, {"sponsorId": "6844082", "id": "9702752", "name": "花岡 祐司", "actualPV": 0}, {"sponsorId": "6366460", "id": "9401212", "name": "瀬尾 大輔", "actualPV": 85800}, {"sponsorId": "9401212", "id": "9806551", "name": "小林 春子", "actualPV": 85800}, {"sponsorId": "9806551", "id": "608243", "name": "松田 美穂", "actualPV": 0}, {"sponsorId": "9806551", "id": "770403", "name": "篠宮 風華", "actualPV": 76560}, {"sponsorId": "9401212", "id": "9617019", "name": "井澤 淳一", "actualPV": 0}, {"sponsorId": "9401212", "id": "9757757", "name": "清水 孝恵", "actualPV": 0}, {"sponsorId": "9401212", "id": "9763577", "name": "上村 弘樹&孝恵", "actualPV": 0}, {"sponsorId": "6366460", "id": "9451535", "name": "宮澤 拓也", "actualPV": 5190}, {"sponsorId": "9451535", "id": "9496934", "name": "竹前 晴佳", "actualPV": 0}, {"sponsorId": "9451535", "id": "9509910", "name": "太田 ことみ", "actualPV": 4370}, {"sponsorId": "9451535", "id": "9721956", "name": "宮澤 一美", "actualPV": 0}, {"sponsorId": "6366460", "id": "9411070", "name": "山田 真理子", "actualPV": 0}, {"sponsorId": "9411070", "id": "9481177", "name": "若塚 裕枝", "actualPV": 0}, {"sponsorId": "6366460", "id": "6918508", "name": "西宮 豊", "actualPV": 0}, {"sponsorId": "6366460", "id": "6945546", "name": "松澤 直美", "actualPV": 0}, {"sponsorId": "6366460", "id": "9539383", "name": "岡田 和貴", "actualPV": 0}, {"sponsorId": "6366460", "id": "9551104", "name": "長谷川 万珠", "actualPV": 0}, {"sponsorId": "6366460", "id": "9735371", "name": "大熊 久美子", "actualPV": 0}, {"sponsorId": "5833182", "id": "5864221", "name": "深井 三里", "actualPV": 6650}, {"sponsorId": "5226640", "id": "5802198", "name": "清野 翔", "actualPV": 101500}, {"sponsorId": "5802198", "id": "5864703", "name": "南 美咲", "actualPV": 101500}, {"sponsorId": "5864703", "id": "6779289", "name": "佐藤 真喜子", "actualPV": 19120}, {"sponsorId": "6779289", "id": "8859623", "name": "西川 明江", "actualPV": 19120}, {"sponsorId": "6779289", "id": "9393615", "name": "林 なるみ", "actualPV": 0}, {"sponsorId": "6779289", "id": "9669209", "name": "秋山 歩", "actualPV": 0}, {"sponsorId": "5864703", "id": "6727207", "name": "丸山 沙綾香", "actualPV": 0}, {"sponsorId": "6727207", "id": "6788274", "name": "青木 章悟", "actualPV": 0}, {"sponsorId": "6788274", "id": "6806187", "name": "嶋田 大士", "actualPV": 0}, {"sponsorId": "5864703", "id": "6797767", "name": "佐藤 美智子", "actualPV": 57660}, {"sponsorId": "6797767", "id": "6909486", "name": "荒井 はるみ", "actualPV": 0}, {"sponsorId": "5864703", "id": "6961584", "name": "小宮山 貴弘", "actualPV": 6650}, {"sponsorId": "6961584", "id": "9327549", "name": "小野塚 典子", "actualPV": 6650}, {"sponsorId": "5864703", "id": "6719766", "name": "白井 達哉", "actualPV": 0}, {"sponsorId": "5802198", "id": "5856419", "name": "朝比奈 雅和", "actualPV": 0}, {"sponsorId": "5802198", "id": "6201737", "name": "宮阪 活希", "actualPV": 0}, {"sponsorId": "5802198", "id": "6842877", "name": "桜井 瞬", "actualPV": 0}, {"sponsorId": "5226640", "id": "9507203", "name": "永井 友也", "actualPV": 24440}, {"sponsorId": "9507203", "id": "9591392", "name": "永井 久美子", "actualPV": 0}, {"sponsorId": "9507203", "id": "9600678", "name": "冨田 トモ子", "actualPV": 0}, {"sponsorId": "9507203", "id": "9947108", "name": "小林 学", "actualPV": 12770}, {"sponsorId": "5226640", "id": "5250419", "name": "竹鼻 正和", "actualPV": 0}, {"sponsorId": "5250419", "id": "6956970", "name": "宮崎 勇次", "actualPV": 0}, {"sponsorId": "5226640", "id": "9543154", "name": "西嶋 宏次&愛", "actualPV": 0}, {"sponsorId": "9543154", "id": "9578179", "name": "野田 直也", "actualPV": 0}, {"sponsorId": "5226640", "id": "5297710", "name": "酒井 将裕", "actualPV": 0}, {"sponsorId": "5226640", "id": "6776986", "name": "板谷 幸子", "actualPV": 0}, {"sponsorId": "5226640", "id": "8954241", "name": "伊東 憲子", "actualPV": 0}, {"sponsorId": "5226640", "id": "9723504", "name": "勝野 信子", "actualPV": 6450}, {"sponsorId": "5226640", "id": "9734064", "name": "中沢 江子&黒澤 彩香", "actualPV": 0}];
+const LOS_MAP = Object.fromEntries(LOS_ROWS.map(r=>[String(r.id), r]));
+const LOS_CHILDREN = LOS_ROWS.reduce((acc,r)=>{ const key=String(r.sponsorId||''); (acc[key] ||= []).push(r); return acc; }, {});
+function losRow(id){ return LOS_MAP[String(id)] || null; }
+function losName(id){
+  const app = typeof userById === 'function' ? userById(String(id)) : null;
+  if(app) return app.nick;
+  const row=LOS_MAP[String(id)];
+  if(!row) return String(id||'');
+  return String(row.name||'').replace(/\s+/g,'').replace('非公開のユーザー','非公開');
+}
+function losChildrenOf(id){
+  return (LOS_CHILDREN[String(id)] || []).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
+}
+function losDescendantsOf(id){
+  const out=[]; const q=losChildrenOf(id).map(x=>x.id); const seen=new Set();
+  while(q.length){
+    const cur=q.shift();
+    if(seen.has(cur)) continue;
+    seen.add(cur);
+    const row=losRow(cur);
+    if(row) out.push(row);
+    losChildrenOf(cur).forEach(k=>{ if(!seen.has(k.id)) q.push(k.id); });
+  }
+  return out;
+}
+function losPath(rootId, targetId){
+  const names=[]; let cur=losRow(targetId); const seen=new Set();
+  while(cur && String(cur.sponsorId||'') && String(cur.sponsorId)!==String(rootId) && !seen.has(cur.id)){
+    seen.add(cur.id);
+    const p=losRow(cur.sponsorId);
+    if(!p) break;
+    names.unshift(losName(p.id));
+    cur=p;
+  }
+  return names;
+}
+let focusUserId = null;
+let modalMode = null;
+let weekBaseDate = todayStr();
+let scheduleMonthBase = todayStr().slice(0,7)+'-01';
+let selectedScheduleDate = todayStr();
+const LARGE_PRODUCTS = [{name:'空気清浄機',pv:97890},{name:'空気清浄機ミニ',pv:51700},{name:'浄水器',pv:19870},{name:'電動ハブラシ',pv:13000},{name:'ドライヤー',pv:29080},{name:'バス浄',pv:74320},{name:'QCW',pv:110700}];
+
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{
+      const s = JSON.parse(raw);
+      normalizeState(s);
+      return s;
+    }catch(e){ console.error(e); }
+  }
+  const s = JSON.parse(JSON.stringify(IMPORTED_INITIAL_STATE));
+  normalizeState(s);
+  saveState(s);
+  return s;
+}
+function normalizeState(s){
+  ['updates','meetings','todos','prospects','schedules','shifts','pvManual','todoTemplates'].forEach(k=>s[k] = s[k] || {});
+  s.users = (s.users||[]).map(u=>({actualAwardPV:0,goalTotalPV:0,goalConsumablePV:0,goalFrontUp:0,goalGroupUp:0,actualFrontUp:0,actualMemberUp:0,...u}));
+  s.users = s.users.map(u => {
+    const row = LOS_MAP[String(u.id)];
+    // [Fix v32] parentIdはCSVのsponsorIdで上書きせず、アプリ内の関係（u.parentId）を維持する
+    // CSVのsponsorIdにはアプリ未登録の中間ユーザーが含まれるため、上書きするとユーザーが孤立する
+    return {
+      ...u,
+      parentId: u.parentId || (PARENT_FIX.hasOwnProperty(u.id) ? PARENT_FIX[u.id] : ''),
+      actualAwardPV: row ? Number(row.actualPV||0) : Number(u.actualAwardPV||0)
+    };
+  });
+  for(const u of s.users){
+    if(!s.updates[u.id]) s.updates[u.id] = {meeting:'',schedule:'',pv:'',prospect:'',todo:''};
+    s.meetings[u.id] ||= [];
+    s.todos[u.id] ||= [];
+    s.prospects[u.id] ||= [];
+    s.schedules[u.id] ||= [];
+    s.shifts[u.id] ||= [];
+    s.pvManual[u.id] ||= [];
+    s.todoTemplates[u.id] ||= [];
+    s.prospects[u.id] = s.prospects[u.id].map(x=>({expectedPV:Number(x.expectedPV||0),...x}));
+  }
+  s.commonSchedules ||= [];
+  s.loginHistory ||= {};
+}
+
+
+const S = loadState();
+let currentTab = ((S.loggedIn && userById(S.loggedIn)?.role==='leader') ? 'adminalerts' : 'home');
+let selLoginId = null;
+let pinInput = '';
+const GRADE_LABELS = {A:'アムウェイアポ狙える',B:'ニーズ調査',C:'アポ取り',D:'次月以降対応'};
+let pvTreeOpen = {};
+
+function save(){ saveState(S); }
+function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+function nowIso(){ return new Date().toISOString(); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmt(n){ return Number(n||0).toLocaleString('ja-JP'); }
+function userById(id){ return S.users.find(u=>u.id===id); }
+function me(){ return userById(S.loggedIn); }
+function isAdmin(){ return me()?.role === 'leader'; }
+function initials(name){ return String(name||'?').slice(0,2); }
+function colorFor(id){
+  const list = [['#eeedff','#534ab7'],['#e7f7ef','#12734a'],['#ffeef1','#a33759'],['#fff4de','#9a6200'],['#edf4ff','#245da8']];
+  const i = Math.abs(String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % list.length;
+  return {bg:list[i][0],tx:list[i][1]};
+}
+function childrenOf(id){ return S.users.filter(u=>u.parentId===id); }
+function isUnderRoot(rootId, targetId){
+  if(!rootId || !targetId || rootId===targetId) return false;
+  let cur = userById(targetId);
+  const seen = new Set();
+  while(cur && cur.parentId && !seen.has(cur.id)){
+    seen.add(cur.id);
+    if(cur.parentId===rootId) return true;
+    cur = userById(cur.parentId);
+  }
+  return false;
+}
+function descendantsOf(id){
+  const out=[];
+  const q = S.users.filter(u=>u.parentId===id).map(u=>u.id);
+  const seen = new Set();
+  while(q.length){
+    const curId = q.shift();
+    if(seen.has(curId)) continue;
+    seen.add(curId);
+    const cur = userById(curId);
+    if(cur){ out.push(cur); }
+    S.users.filter(u=>u.parentId===curId).forEach(u=>{ if(!seen.has(u.id)) q.push(u.id); });
+  }
+  return out;
+}
+function canEditTarget(id){ if(isAdmin()) return true; return S.loggedIn===id; }
+function canViewTarget(id){ if(isAdmin()) return true; return S.loggedIn===id; }
+function canViewPvTarget(id){ if(isAdmin()) return true; if(S.loggedIn===id) return true; return descendantsOf(S.loggedIn).some(u=>u.id===id); }
+function currentSubject(){ return userById(focusUserId || S.loggedIn); }
+function touch(userId, area){ S.updates[userId] ||= {}; S.updates[userId][area] = nowIso(); save(); }
+function lastUpdate(userId, area){ return (S.updates[userId]||{})[area] || ''; }
+function isToday(val){ return !!val && val.slice(0,10) === todayStr(); }
+function agoText(val){
+  if(!val) return '未更新';
+  const diff = Date.now() - new Date(val).getTime();
+  const min = Math.floor(diff/60000), hr = Math.floor(diff/3600000), day=Math.floor(diff/86400000);
+  if(min < 60) return `${Math.max(1,min)}分前`;
+  if(hr < 24) return `${hr}時間前`;
+  return `${day}日前`;
+}
+function daysSince(val){ if(!val) return 999; const diff=Date.now()-new Date(val).getTime(); return Math.floor(diff/86400000); }
+function updateTone(val){ const d=daysSince(val); if(d>=7) return 'bad'; if(d>=3) return 'warn'; return ''; }
+function dateJp(d){ return d ? d.replace(/-/g,'/') : '未設定'; }
+
+
+function gradeLabel(g){ return GRADE_LABELS[g] || ''; }
+function ensureMeetingSchedule(uid, meeting){
+  const arr = scheduleList(uid);
+  const targetTitle = '打合せ';
+  const targetNote = meeting.note || '';
+  const existing = arr.find(x => x.linkedMeetingId===meeting.id || (x.title===targetTitle && x.date===meeting.date && (x.autoMeeting||x.linkedMeetingId)));
+  if(existing){ existing.date = meeting.date; existing.title = targetTitle; existing.time = existing.time || ''; existing.note = targetNote; existing.autoMeeting = true; existing.linkedMeetingId = meeting.id; }
+  else { arr.unshift({id:'sm'+Date.now()+Math.floor(Math.random()*1000), date:meeting.date, time:'', title:targetTitle, note:targetNote, autoMeeting:true, linkedMeetingId:meeting.id}); }
+  touch(uid,'schedule');
+}
+function removeMeetingSchedule(uid, meetingId){
+  S.schedules[uid] = scheduleList(uid).filter(x => x.linkedMeetingId !== meetingId);
+  touch(uid,'schedule');
+}
+
+function deadlineHtml(d){
+  if(!d) return '<span class="badge gray">期限未設定</span>';
+  const diff = daysSince(d);
+  const tone = diff < 0 ? 'ok' : diff <= 3 ? 'bad' : 'warn';
+  const label = diff < 0 ? `期限 ${dateJp(d)}` : diff === 0 ? `今日 ${dateJp(d)}` : `あと${diff}日 ${dateJp(d)}`;
+  return `<span class="badge ${tone}">${label}</span>`;
+}
+function escapeHtml(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function monthDaysLeft(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth()+1,0).getDate()-n.getDate(); }
+function pvRemaining(uid){ const u=userById(uid); const goal=Number(u?.goalTotalPV||0); return Math.max(0, goal - Number(u?.actualAwardPV||0)); }
+function perDayNeed(uid){ const left=Math.max(1,monthDaysLeft()); return Math.ceil(pvRemaining(uid)/left); }
+function lastDateLabel(v){ return v ? String(v).slice(0,10).replace(/-/g,'/') : '未更新'; }
+function prospectDueSoonCount(uid, days=7){ const t=new Date(todayStr()+'T00:00:00'); return prospectList(uid).filter(p=>{ const d=p.nextActionDue||''; if(!d) return false; const diff=(new Date(d+'T00:00:00')-t)/86400000; return diff>=0 && diff<=days; }).length; }
+function sponsorName(uid){ const u=userById(uid); const p=u && u.parentId ? userById(u.parentId) : null; return p ? p.nick : '自分'; }
+function lineageLabel(rootId, uid){ const d=depthFrom(rootId, uid); return d===1 ? '直ダウン' : `配下${d}段`; }
+function todoTemplates(uid){ return S.todoTemplates[uid] || []; }
+function addTodoTemplate(uid,title){ if(!title) return; S.todoTemplates[uid] ||= []; if(!S.todoTemplates[uid].includes(title)) S.todoTemplates[uid].unshift(title); S.todoTemplates[uid]=S.todoTemplates[uid].slice(0,30); }
+function projectedGroupUp(uid){ return descendantsOf(uid).reduce((a,u)=>a+Number(u.actualFrontUp||u.actualMemberUp||0),0); }
+function dueTodayLinked(uid){
+  const t=todayStr();
+  const prospects=prospectList(uid).filter(p=>p.nextActionDue===t).map(p=>({id:'auto_p_'+p.id,title:`${p.name}：${p.nextAction||'次アクション'}`,due:p.nextActionDue,source:'プロスペ',status:'todo',auto:true}));
+  const plans=pvManual(uid).filter(x=>x.due===t).map(x=>({id:'auto_v_'+x.id,title:`${x.name}：${x.action||'PV計画対応'}`,due:x.due,source:'PV計画',status:'todo',auto:true}));
+  return [...prospects,...plans];
+}
+function todoFeed(uid){
+  const manual=todoList(uid).map(x=>({...x,source:'TODO',auto:false,status:x.status||'todo'})).filter(x=>x.status!=='done');
+  return [...manual,...dueTodayLinked(uid)].sort((a,b)=>String(a.due||'9999-12-31').localeCompare(String(b.due||'9999-12-31')));
+}
+function sum(arr, key){ return arr.reduce((a,x)=>a + Number(typeof key==='function' ? key(x) : (key ? x[key] : x) || 0),0); }
+function prospectList(uid){ return S.prospects[uid] || []; }
+function pvManual(uid){ S.pvManual ||= {}; return S.pvManual[uid] ||= []; }
+function meetingList(uid){ S.meetings ||= {}; return S.meetings[uid] ||= []; }
+function todoList(uid){ S.todos ||= {}; return S.todos[uid] ||= []; }
+function scheduleList(uid){ S.schedules ||= {}; return S.schedules[uid] ||= []; }
+function shiftList(uid){ S.shifts ||= {}; return S.shifts[uid] ||= []; }
+function commonSchedules(){ return S.commonSchedules || []; }
+function loginStamp(uid){ S.loginHistory ||= {}; S.loginHistory[uid]=nowIso(); }
+function lastLogin(uid){ return (S.loginHistory||{})[uid] || ''; }
+function manualConsumablePV(uid){ return sum(pvManual(uid),x=>Number(x.consumablePV||0)); }
+function manualLargePV(uid){ return sum(pvManual(uid),x=>Number(x.largePV||0)); }
+function manualTotalPV(uid){ return sum(pvManual(uid),x=>Number(x.consumablePV||0)+Number(x.largePV||0)); }
+function ownGroupCandidates(uid){ return descendantsOf(uid); }
+
+function projectedProspectPV(uid, onlyRetail=false){
+  return sum(prospectList(uid).filter(p=>onlyRetail ? ['小売先','PC','既存客'].includes(p.category) : !['小売先','PC','既存客'].includes(p.category)), 'expectedPV');
+}
+
+// 自分自身の計画PV（手動計画 + 自分のプロスペ見込み）
+function projectedOwnPlanPV(uid){
+  return manualTotalPV(uid) + projectedProspectPV(uid,false) + projectedProspectPV(uid,true);
+}
+
+// ダウンライン全員の実績PV合計（再帰）
+// [Fix v32] LOSデータがあればその値（グループ全体の合計済みPV）を返し、なければアプリ内の値を使う
+// アプリ未登録のダウンラインPVも含めるため、LOS_ROWSのactualPVを優先参照する
+function groupActualPV(uid){
+  const row = losRow(uid);
+  return row ? Number(row.actualPV || 0) : Number(userById(uid)?.actualAwardPV || 0);
+}
+
+// ダウンライン全員の計画PV合計（再帰）
+function groupPlanPV(uid){
+  const rows = losDescendantsOf(uid);
+  return sum(rows, x => manualTotalPV(String(x.id)) + projectedProspectPV(String(x.id),false) + projectedProspectPV(String(x.id),true));
+}
+function groupPlanPVIncludingSelf(uid){
+  const rows = [losRow(uid), ...losDescendantsOf(uid)].filter(Boolean);
+  return sum(rows, x => manualTotalPV(String(x.id)) + projectedProspectPV(String(x.id),false) + projectedProspectPV(String(x.id),true));
+}
+
+// アップライン表示用：ダウンライン1件ずつのエントリ（直属ダウンのグループ単位）
+function linkedDownlineEntries(uid){
+  const directKids = S.users.filter(u=>u.parentId===uid);
+  const entries = directKids.map(u=>{
+    const kidDescendants = [u, ...descendantsOf(u.id)];
+    const totalActual = sum(kidDescendants, x=>Number(x.actualAwardPV||0));
+    const totalPlan   = sum(kidDescendants, x=>projectedOwnPlanPV(x.id));
+    const totalCons   = sum(kidDescendants, x=>manualConsumablePV(x.id));
+    const totalLarge  = sum(kidDescendants, x=>manualLargePV(x.id));
+    const totalProsp  = sum(kidDescendants, x=>projectedProspectPV(x.id,false)+projectedProspectPV(x.id,true));
+    return {
+      id:'auto_'+u.id, name:u.nick,
+      due:'', action:'グループ計',
+      consumablePV:totalCons, largePV:totalLarge,
+      targetPV:totalPlan, prospPV:totalProsp,
+      actualPV:totalActual, note:'ダウンライン入力から自動反映',
+      memberId:u.id, memberCount:kidDescendants.length
+    };
+  }).filter(x=>x.targetPV>0||x.actualPV>0);
+  return entries;
+}
+
+// 自分＋グループ全体の計画PV合計（アップラインのPV計画集計に使う）
+function projectedTotalPV(user){
+  return projectedOwnPlanPV(user.id) + groupPlanPV(user.id);
+}
+
+// 旧API互換
+function projectedOwnPV(uid){ return projectedOwnPlanPV(uid); }
+function scoreUser(uid){
+  const u = userById(uid); let s = 2;
+  ['meeting','schedule','pv','prospect','todo'].forEach(a=>{ const d=daysSince(lastUpdate(uid,a)); if(d===0) s += 1.5; else if(d<3) s += 1; else if(d<7) s += 0.4; else s -= 0.3; });
+  const prog = u.goalTotalPV ? Math.min(1, (Number(u.actualAwardPV||0)+projectedTotalPV(u))/Number(u.goalTotalPV||1)) : 0;
+  s += prog*2.5;
+  const grpGoal = Number(u.goalGroupUp||0), frontGoal = Number(u.goalFrontUp||u.goalMemberUp||0);
+  const upProg = (frontGoal?Math.min(1,Number(u.actualFrontUp||u.actualMemberUp||0)/frontGoal):0) + (grpGoal?Math.min(1,projectedGroupUp(uid)/grpGoal):0);
+  s += Math.min(2,upProg);
+  return Math.max(1,Math.min(10,Math.round(s)));
+}
+function faceByScore(n){
+  const faces = ['😵','😢','☹️','🙁','😐','🙂','😊','😄','😁','🤩','🥳'];
+  return faces[Math.max(0,Math.min(10,Math.round(n/10)))];
+}
+function monthProgressScore(uid){
+  const u=userById(uid);
+  const goal=Number(u.goalTotalPV||0); if(!goal) return 0;
+  const now=new Date(); const day=now.getDate(); const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const expected=day/dim; const actual=Math.min(1,(Number(u.actualAwardPV||0)+projectedTotalPV(u))/goal);
+  const ratio=Math.min(1.25, actual/Math.max(0.08,expected));
+  return Math.max(0,Math.min(40, Math.round(40*Math.min(1,ratio))));
+}
+function prospectScore(uid){
+  const list=prospectList(uid).filter(p=>p.grade!=='D');
+  const appts=list.filter(p=>p.apptFixed).length;
+  const countScore=Math.min(8, list.length*1.3);
+  const apptScore=Math.min(12, appts*4);
+  return Math.round(countScore+apptScore);
+}
+function meetingScore(uid){
+  const dates=meetingList(uid).map(x=>x.date).filter(Boolean).sort().reverse();
+  if(!dates.length) return 0;
+  const d=Math.abs(Math.floor((new Date(todayStr())-new Date(dates[0]))/86400000));
+  if(d===0) return 19; if(d===1) return 16; if(d<=3) return 12; if(d<=7) return 8; if(d<=14) return 4; return 1;
+}
+function hundredScore(uid){
+  let score=0;
+  score += lastLogin(uid) && daysSince(lastLogin(uid))<=1 ? 1 : 0;
+  ['meeting','schedule','pv','prospect'].forEach(a=>{ if(lastUpdate(uid,a)&&daysSince(lastUpdate(uid,a))<=1) score += 5; });
+  score += monthProgressScore(uid);
+  score += prospectScore(uid);
+  score += meetingScore(uid);
+  return Math.max(0,Math.min(100,Math.round(score)));
+}
+function sortByDue(list){
+  return [...list].sort((a,b)=>{
+    const ad = a.nextActionDue || a.due || '9999-12-31';
+    const bd = b.nextActionDue || b.due || '9999-12-31';
+    return ad.localeCompare(bd);
+  });
+}
+
+function tabs(){
+  if(isAdmin()) return [
+    {id:'adminalerts', label:'管理アラート'},
+    {id:'commonschedule', label:'共通スケジュール'},
+    {id:'members', label:'メンバー管理'},
+    {id:'pvadmin', label:'PV実績'},
+    {id:'dataio', label:'📥 データ管理'}
+  ];
+  const arr = [
+    {id:'home', label:'ホーム'},
+    {id:'pv', label:'PV計画'},
+    {id:'mygroup', label:'自分のグループ'},
+    {id:'prospects', label:'プロスペ'},
+    {id:'schedule', label:'スケジュール'},
+    {id:'todo', label:'TODO'}
+  ];
+  arr.push({id:'meeting', label:'打合せ'});
+  return arr;
+}
+
+function renderLogin(){
+  const grid = document.getElementById('memberGrid');
+  grid.innerHTML = S.users.map(u=>{
+    const c = colorFor(u.id);
+    return `<button class="member-btn ${selLoginId===u.id?'sel':''}" onclick="selectLogin('${u.id}')"><div class="avatar" style="background:${c.bg};color:${c.tx}">${initials(u.nick)}</div><div class="member-name">${u.nick}</div><div class="member-role">${u.role==='leader'?'管理者':'メンバー'}</div></button>`;
+  }).join('');
+  document.getElementById('pinArea').classList.toggle('hidden', !selLoginId);
+  if(selLoginId){
+    document.getElementById('loginErr').textContent='';
+    document.getElementById('pinDots').innerHTML = Array.from({length:4}, (_,i)=>`<div class="dot ${i<pinInput.length?'f':''}"></div>`).join('');
+    document.getElementById('pinPad').innerHTML = ['1','2','3','4','5','6','7','8','9','←','0','クリア'].map(k=>`<button class="key" onclick="pinKey('${k}')">${k}</button>`).join('');
+  }
+}
+function selectLogin(id){ selLoginId=id; pinInput=''; renderLogin(); }
+function pinKey(k){ if(k==='クリア') pinInput=''; else if(k==='←') pinInput=pinInput.slice(0,-1); else if(pinInput.length<4) pinInput+=k; renderLogin(); if(pinInput.length===4) attemptLogin(); }
+function attemptLogin(){ const u=userById(selLoginId); if(!u) return; if(String(u.pin)===pinInput){ S.loggedIn=u.id; save(); pinInput=''; focusUserId=null; currentTab = (u.role==='leader' ? 'adminalerts' : 'home'); openApp(); } else { document.getElementById('loginErr').textContent='PINが違います'; pinInput=''; renderLogin(); } }
+function openApp(){ loginStamp(S.loggedIn); save(); document.getElementById('loginScreen').classList.remove('active'); document.getElementById('appScreen').classList.add('active'); renderApp(); }
+function logout(){ S.loggedIn=null; save(); selLoginId=null; pinInput=''; document.getElementById('appScreen').classList.remove('active'); document.getElementById('loginScreen').classList.add('active'); renderLogin(); }
+function switchTab(id){ focusUserId=null; currentTab=id; renderApp(); }
+function openMemberPage(uid, tab='home'){ focusUserId=uid; currentTab='memberview'; renderApp(); }
+function openTargetTab(uid, tab){ focusUserId=uid; currentTab=tab; renderApp(); }
+function goBack(){ focusUserId=null; currentTab='home'; renderApp(); }
+
+function renderApp(){
+  const u = me(); if(!u){ logout(); return; }
+  const c = colorFor(u.id);
+  document.getElementById('userAv').style.background = c.bg; document.getElementById('userAv').style.color = c.tx; document.getElementById('userAv').textContent=initials(u.nick);
+  document.getElementById('pageTitle').textContent = isAdmin() ? '管理画面' : (focusUserId && focusUserId!==S.loggedIn ? `${currentSubject().nick}のページ` : `${u.nick}のPFS`);
+  document.getElementById('pageSub').textContent = isAdmin() ? 'アラート / 共通スケジュール / 実績PV管理' : '必要な入力だけを迷わず更新';
+  document.getElementById('tabs').innerHTML = tabs().map(t=>`<button class="tab ${currentTab===t.id?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('');
+  document.getElementById('content').innerHTML = renderCurrent();
+}
+function renderCurrent(){
+  const admin = isAdmin();
+  const tab = currentTab;
+  if(admin){
+    if(tab==='adminalerts') return renderAdminAlerts();
+    if(tab==='commonschedule') return renderCommonScheduleAdmin();
+    if(tab==='members') return renderMembersAdmin();
+    if(tab==='pvadmin') return renderPvAdmin();
+    if(tab==='dataio') return renderDataIO();
+    return renderAdminAlerts();
+  }
+  if(tab==='memberview') return renderMemberView();
+  if(tab==='home') return renderHome(false);
+  if(tab==='pv') return renderPvSafe();
+  if(tab==='mygroup') return renderMyGroupSafe();
+  if(tab==='prospects') return renderProspects();
+  if(tab==='schedule') return renderSchedule();
+  if(tab==='todo') return renderTodo();
+  if(tab==='meeting') return renderMeeting();
+  return renderHome(false);
+}
+function homeUpdateCard(uid, area, label, targetTab){
+  const last = lastUpdate(uid,area), tone = updateTone(last);
+  return `<button class="home-btn ${tone}" onclick="${focusUserId?`openTargetTab('${uid}','${targetTab}')`:`switchTab('${targetTab}')`}"><div class="h">${label}</div><div class="t">${agoText(last)}</div></button>`;
+}
+function renderHome(admin){
+  const u = currentSubject();
+  const remain = pvRemaining(u.id);
+  const daysLeft = monthDaysLeft();
+  const pvLast = lastUpdate(u.id,'pv');
+  const prLast = lastUpdate(u.id,'prospect');
+  const mtLast = lastUpdate(u.id,'meeting');
+  const scLast = lastUpdate(u.id,'schedule');
+  const dueSoon = prospectDueSoonCount(u.id,7);
+  const todoFeedList = todoFeed(u.id).slice(0,6).map(t=>`<div class="mini-item"><div><div class="b">${t.title}</div><div class="small">${t.source} / 期限 ${dateJp(t.due)}</div></div></div>`).join('') || `<div class="empty">やるべきことはありません</div>`;
+  const all = S.users.filter(x=>x.role!=='leader');
+  const faces = all.map(x=>renderFaceCard(x)).join('');
+  return `
+  <div class="card soft"><div class="section-head"><h3>今月あと${daysLeft}日</h3><div class="subject">残 ${fmt(remain)} PV</div></div><div class="muted">残り1日あたり ${fmt(perDayNeed(u.id))}PV ペース</div></div>
+  <div class="grid2">
+    <button class="home-btn ${updateTone(pvLast)}" onclick="switchTab('pv')"><div class="h">PV計画</div><div class="t">最終記入履歴 ${lastDateLabel(pvLast)}</div></button>
+    <button class="home-btn ${updateTone(prLast)}" onclick="switchTab('prospects')"><div class="h">プロスペ管理</div><div class="t">最終記入履歴 ${lastDateLabel(prLast)} / プロスペ ${prospectList(u.id).filter(p=>p.grade!=='D').length}人 / 期限間近 ${dueSoon}人</div></button>
+    <button class="home-btn ${updateTone(mtLast)}" onclick="switchTab('meeting')"><div class="h">打合せ</div><div class="t">最終打合せ履歴 ${lastDateLabel(mtLast)}</div></button>
+    <button class="home-btn ${updateTone(scLast)}" onclick="switchTab('schedule')"><div class="h">スケジュール</div><div class="t">最終記入履歴 ${lastDateLabel(scLast)}</div></button>
+  </div>
+  <div class="card"><div class="section-head"><h3>TODO / 今日やること</h3><button class="btn2" onclick="switchTab('todo')">TODOへ</button></div><div class="list compact">${todoFeedList}</div></div>
+  <div class="card"><div class="section-head"><h3>みんなの進捗</h3><div class="small">100点満点スコア</div></div><div class="face-grid">${faces}</div></div>`;
+}
+function renderFaceCard(u){
+  const s = hundredScore(u.id), tone=updateTone(lastUpdate(u.id,'pv'))||updateTone(lastUpdate(u.id,'prospect'))||updateTone(lastUpdate(u.id,'schedule'))||updateTone(lastUpdate(u.id,'meeting'));
+  const c=colorFor(u.id); return `<button class="face-card ${tone}" onclick="openMemberPage('${u.id}')"><div class="face-big">${faceByScore(s)}</div><div class="b">${u.nick}</div><div class="small">${s}点</div><div class="tiny-row"><span class="mini ${isToday(lastUpdate(u.id,'meeting'))?'':'off'}">打合せ</span><span class="mini ${isToday(lastUpdate(u.id,'schedule'))?'':'off'}">スケジュール</span><span class="mini ${isToday(lastUpdate(u.id,'pv'))?'':'off'}">PV計画</span><span class="mini ${isToday(lastUpdate(u.id,'prospect'))?'':'off'}">プロスペ</span></div></button>`;
+}
+function renderMemberView(){
+  const u = currentSubject();
+  return `<div class="page-head"><div class="head-actions"><button class="btn2" onclick="goBack()">← 戻る</button><div class="subject">${u.nick}</div></div></div>
+  <div class="card"><div class="section-head"><h3>${u.nick}のページ</h3><div class="small">配下外はPVだけ非表示</div></div><div class="home-actions">
+    <button class="home-btn" onclick="openTargetTab('${u.id}','prospects')"><div class="h">プロスペ</div><div class="t">${agoText(lastUpdate(u.id,'prospect'))}</div></button>
+    <button class="home-btn" onclick="openTargetTab('${u.id}','schedule')"><div class="h">スケジュール</div><div class="t">${agoText(lastUpdate(u.id,'schedule'))}</div></button>
+    <button class="home-btn" onclick="openTargetTab('${u.id}','todo')"><div class="h">TODO</div><div class="t">${agoText(lastUpdate(u.id,'todo'))}</div></button>
+    <button class="home-btn" onclick="openTargetTab('${u.id}','meeting')"><div class="h">打合せ</div><div class="t">${agoText(lastUpdate(u.id,'meeting'))}</div></button>
+    ${canViewPvTarget(u.id)?`<button class="home-btn" onclick="openTargetTab('${u.id}','pv')"><div class="h">PV計画</div><div class="t">${agoText(lastUpdate(u.id,'pv'))}</div></button>`:''}
+  </div></div>`;
+}
+
+
+function renderPvSafe(){
+  try{ return renderPv(); }
+  catch(err){
+    console.error('PV tab render error', err);
+    const uid=currentSubject().id;
+    return `<div class="card"><div class="card-title">PV計画</div><div class="empty">PV計画の表示でエラーが発生しました。簡易表示に切り替えます。</div></div>${renderPvFallback(uid)}`;
+  }
+}
+function renderMyGroupSafe(){
+  try{ return renderMyGroup(); }
+  catch(err){
+    console.error('MyGroup render error', err);
+    return `<div class="card"><div class="card-title">自分のグループ</div><div class="empty">グループ表示でエラーが発生しました。</div></div>`;
+  }
+}
+function renderPvFallback(uid){
+  const u=userById(uid);
+  const mine=sortByDue(pvManual(uid));
+  const remain=pvRemaining(uid);
+  return `<div class="card"><div class="section-head"><h3>PV計画</h3><button class="btn2" onclick="openModal('pvmanual','${uid}')">追加</button></div><div class="muted">最終記入履歴 ${lastDateLabel(lastUpdate(uid,'pv'))} / 残PV ${fmt(remain)} / 1日あたり ${fmt(perDayNeed(uid))}PV</div><div class="list" style="margin-top:10px">${mine.map(x=>`<div class="item"><div class="item-top"><div><div class="item-name" style="cursor:pointer;color:#4450cf" onclick="openModal('pvmanual','${uid}','${x.id}')">${x.name}</div><div class="item-sub">${deadlineHtml(x.due)} / ${x.action||'内容未入力'}</div></div><div class="badge">合計 ${fmt((x.consumablePV||0)+(x.largePV||0))}PV</div></div></div>`).join('') || '<div class="empty">計画なし</div>'}</div></div><div class="card"><div class="section-head"><h3>グループ状況</h3></div><div style="margin-top:10px">${renderLosTree(uid)}</div></div>`;
+}
+function renderGroupSummaryCard(rootId,row,depth){
+  const appUser=userById(String(row.id));
+  const kids=losChildrenOf(row.id);
+  const actual=Number(row.actualPV||0);
+  const rowUid=String(row.id);
+  const plan=manualTotalPV(rowUid) + projectedProspectPV(rowUid,false) + projectedProspectPV(rowUid,true);
+  const goal=appUser ? Number(appUser.goalTotalPV||0) : 0;
+  const prosp=appUser ? prospectList(appUser.id).filter(p=>p.grade!=='D').length : 0;
+  const urgent=appUser ? prospectList(appUser.id).filter(p=>p.nextActionDue && daysSince(p.nextActionDue)<=3 && daysSince(p.nextActionDue)>=0).length : 0;
+  const updates=appUser ? ['meeting','schedule','pv','prospect'].map(k=>daysSince(lastUpdate(appUser.id,k))).filter(v=>Number.isFinite(v)) : [];
+  const stale=updates.length ? Math.max(...updates) : 999;
+  const staleTone = stale<=1 ? 'ok' : stale<=3 ? 'warn' : 'bad';
+  const labelMap={1:'フロント',2:'セカンド',3:'サード',4:'フォース'};
+  const level=labelMap[depth] || `${depth}段目`;
+  const deadlineList=[];
+  if(appUser){
+    prospectList(appUser.id).forEach(p=>{ if(p.nextActionDue) deadlineList.push({label:`プロスペ:${p.name}`, due:p.nextActionDue}); });
+    pvManual(appUser.id).forEach(v=>{ if(v.due) deadlineList.push({label:`PV:${v.name}`, due:v.due}); });
+    todoList(appUser.id).filter(t=>t.status!=='done' && t.due).forEach(t=> deadlineList.push({label:`TODO:${t.title}`, due:t.due}));
+    scheduleList(appUser.id).forEach(s=>{ if(s.date) deadlineList.push({label:`予定:${s.title}`, due:s.date}); });
+  }
+  deadlineList.sort((a,b)=>String(a.due||'9999-12-31').localeCompare(String(b.due||'9999-12-31')));
+  const nextDue=deadlineList[0];
+  const isOpen = isPvTreeOpen(rootId,row.id);
+  const sponsor = losName(row.sponsorId);
+  const chevron = kids.length ? `<span class="tree-chevron">${isOpen?'▾':'▸'}</span>` : `<span class="badge ok">末端</span>`;
+  return `
+    <div class="item tree-card" style="margin-left:${Math.max(0,(depth-1)*14)}px" ${kids.length?`onclick="togglePvTree('${rootId}','${row.id}')"`:''}>
+      <div class="deadline-big">${nextDue ? `最短期限 ${dateJp(nextDue.due)} / ${escapeHtml(nextDue.label)}` : '期限設定なし'}</div>
+      <div class="item-top">
+        <div>
+          <div class="item-name">${losName(row.id)} <span class="badge ${depth===1?'':'gray'}">${level}</span></div>
+          <div class="item-sub">スポンサー ${sponsor} / 実績 ${fmt(actual)}PV / 計画 ${fmt(plan)}PV ${goal?`/ 目標 ${fmt(goal)}PV`:''}</div>
+          <div class="small">プロスペ ${prosp}人 / 期限間近 ${urgent}人 / 更新 <span class="badge ${staleTone}">${stale<=1?'良好':stale<=3?'注意':'遅れ'}</span></div>
+        </div>
+        <div class="row-actions">${chevron}${appUser?`<button class="btn2" onclick="event.stopPropagation();openMemberPage('${appUser.id}')">詳細</button>`:''}</div>
+      </div>
+    </div>
+    ${isOpen ? kids.map(k=>renderGroupSummaryCard(rootId,k,depth+1)).join('') : ''}
+  `;
+}
+function renderMyGroup(){
+  const u=currentSubject();
+  const uid=u.id;
+  const fronts=losChildrenOf(uid);
+  const all=losDescendantsOf(uid);
+  const totalActual=sum(all,'actualPV');
+  const totalPlan=sum(all, r=>{ const m=userById(String(r.id)); return m ? projectedOwnPlanPV(m.id) : 0; });
+  const urgentCount=all.reduce((a,r)=>{ const m=userById(String(r.id)); if(!m) return a; const c = prospectList(m.id).filter(p=>p.nextActionDue && daysSince(p.nextActionDue)>=0 && daysSince(p.nextActionDue)<=3).length + pvManual(m.id).filter(v=>v.due && daysSince(v.due)>=0 && daysSince(v.due)<=3).length + todoList(m.id).filter(t=>t.status!=='done' && t.due && daysSince(t.due)>=0 && daysSince(t.due)<=3).length; return a+c; },0);
+  return `<div class="card"><div class="section-head"><h3>自分のグループ</h3><div class="small">各メンバーの状況を一覧確認</div></div><div class="grid3"><div class="metric"><div class="k">グループ人数</div><div class="v">${all.length}</div></div><div class="metric"><div class="k">実績PV合計</div><div class="v" style="color:#18a164">${fmt(totalActual)}</div></div><div class="metric"><div class="k">計画PV合計</div><div class="v" style="color:#5865f2">${fmt(totalPlan)}</div><div class="s">期限間近 ${urgentCount}件</div></div></div></div><div class="card"><div class="section-head"><h3>グループ一覧</h3><div class="small">フロントを表示 / 全体タップで配下を展開</div></div><div style="margin-top:10px">${fronts.length ? `<div class="list">${fronts.map(r=>renderGroupSummaryCard(uid,r,1)).join('')}</div>` : '<div class="empty">配下メンバーなし</div>'}</div></div>`;
+}
+
+function renderPv(){
+  const u=currentSubject();
+  const uid=u.id;
+  const mine=sortByDue(pvManual(uid));
+  const losDesc = losDescendantsOf(uid);
+  const myLosRow = losRow(uid);
+  const grpActualPV = myLosRow ? Number(myLosRow.actualPV||0) : Number(u.actualAwardPV||0);
+  const grpPlanPV = projectedOwnPlanPV(uid) + sum(losDesc, x=>manualTotalPV(String(x.id)) + projectedProspectPV(String(x.id),false) + projectedProspectPV(String(x.id),true));
+  const remain = pvRemaining(uid);
+  const goal = Number(u.goalTotalPV)||0;
+  const pct = goal>0 ? Math.min(100,Math.round((Number(u.actualAwardPV||0)+grpPlanPV)/goal*100)) : 0;
+  const barColor = pct>=100?'#18a164':pct>=60?'#5865f2':pct>=30?'#d97706':'#e5484d';
+  const myProspPV = projectedProspectPV(uid,false)+projectedProspectPV(uid,true);
+  return `
+  <div class="card">
+    <div class="section-head"><h3>今月の目標と見通し</h3><button class="btn2" onclick="openModal('goal','${uid}')">目標入力</button></div>
+    <div class="grid3">
+      <div class="metric"><div class="k">目標PV</div><div class="v">${fmt(goal)}</div></div>
+      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(u.actualAwardPV)}</div></div>
+      <div class="metric"><div class="k">残PV</div><div class="v" style="color:${barColor}">${fmt(remain)}</div><div class="s">1日あたり ${fmt(perDayNeed(uid))}PV</div></div>
+    </div>
+    <div style="margin-top:10px;background:#eef2ff;border-radius:8px;height:10px;overflow:hidden"><div style="height:100%;border-radius:8px;background:${barColor};width:${pct}%"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>自分のPV内訳</h3><button class="btn2" onclick="openModal('actualpv','${uid}')">実績更新</button></div>
+    <div class="grid3">
+      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(u.actualAwardPV)}</div></div>
+      <div class="metric"><div class="k">計画PV</div><div class="v" style="color:#5865f2">${fmt(manualTotalPV(uid))}</div><div class="s">消耗品 ${fmt(manualConsumablePV(uid))} / 大型 ${fmt(manualLargePV(uid))}</div></div>
+      <div class="metric"><div class="k">プロスペ見込み</div><div class="v" style="color:#d97706">${fmt(myProspPV)}</div><div class="s">${prospectList(uid).filter(p=>p.grade!=='D').length}人</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>PV計画</h3><button class="btn2" onclick="openModal('pvmanual','${uid}')">追加</button></div>
+    <div class="muted">最終記入履歴 ${lastDateLabel(lastUpdate(uid,'pv'))} / 残PV ${fmt(remain)} / 1日あたり ${fmt(perDayNeed(uid))}PV</div>
+    <div class="list" style="margin-top:10px">
+      ${mine.map(x=>`
+      <div class="item">
+        <div class="item-top"><div><div class="item-name" style="cursor:pointer;color:#4450cf" onclick="openModal('pvmanual','${uid}','${x.id}')">${x.name}</div><div class="item-sub">${deadlineHtml(x.due)} / ${x.action||'内容未入力'}</div></div><div class="badge">合計 ${fmt((x.consumablePV||0)+(x.largePV||0))}PV</div></div>
+        <div class="small">消耗品 ${fmt(x.consumablePV||0)} / 大型 ${fmt(x.largePV||0)} ${x.largeProduct?`(${x.largeProduct})`:''}</div>
+        <div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('pvmanual','${uid}','${x.id}')">編集</button><button class="btn danger" onclick="deletePvManual('${uid}','${x.id}')">削除</button></div>
+      </div>`).join('')}
+      ${!mine.length ? `<div class="empty">計画なし</div>` : ''}
+    </div>
+    <div class="section-divider"></div>
+    <div class="section-head"><h3>自分のグループPV状況</h3><div class="small">フロントを表示 / 全体タップで配下を展開</div></div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="metric"><div class="k">グループ実績PV合計</div><div class="v" style="color:#18a164">${fmt(grpActualPV)}</div></div>
+      <div class="metric"><div class="k">グループ計画PV合計</div><div class="v" style="color:#5865f2">${fmt(grpPlanPV)}</div><div class="s">自分含む</div></div>
+    </div>
+    <div class="muted">添付の実績PV参照ファイルをもとに、自分のグループのみを表示</div>
+    <div style="margin-top:10px">${renderLosTree(uid)}</div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>プロスペ見込み</h3><button class="btn2" onclick="switchTab('prospects')">一覧へ</button></div>
+    <div class="list">${prospectList(uid).filter(p=>p.grade!=='D').length?sortByDue(prospectList(uid).filter(p=>p.grade!=='D')).map(p=>`<div class="item"><div class="item-top"><div><div class="item-name">${p.name} <span class="badge ${p.grade==='A'?'bad':p.grade==='B'?'warn':'gray'}">${p.grade}</span></div><div class="item-sub">${deadlineHtml(p.nextActionDue)} / ${p.nextAction||'未設定'}</div></div><div class="badge">${fmt(p.expectedPV||0)}PV</div></div></div>`).join(''):`<div class="empty">プロスペ見込みなし（プロスペタブで登録）</div>`}</div>
+  </div>`;
+}
+
+
+function renderProspects(){
+  const u=currentSubject();
+  const list = prospectList(u.id);
+  const main = sortByDue(list.filter(p=>p.grade!=='D'));
+  const cand = sortByDue(list.filter(p=>p.grade==='D'));
+  return `<div class="page-head"><div class="head-actions">${focusUserId?`<button class="btn2" onclick="goBack()">← 戻る</button>`:''}<div class="subject">${u.nick} / プロスペ</div></div>${canEditTarget(u.id)?`<button class="btn" onclick="openModal('prospect','${u.id}')">追加</button>`:''}</div>
+  <div class="card"><div class="card-title">期限が近い順</div><div class="list" style="margin-top:10px">${main.length?main.map(p=>renderProspectItem(u.id,p)).join(''):`<div class="empty">登録プロスペなし</div>`}</div></div>
+  <div class="card"><div class="card-title">プロスペ候補(D)</div><div class="list" style="margin-top:10px">${cand.length?cand.map(p=>renderProspectItem(u.id,p)).join(''):`<div class="empty">候補なし</div>`}</div></div>`;
+}
+function renderProspectItem(uid,p){
+  return `<div class="item ${p.grade==='D'?'dgrade':''}"><div class="deadline-big">期限 ${dateJp(p.nextActionDue)}</div><div class="item-top"><div><div class="item-name">${p.name}</div><div class="item-sub">${p.category} / ${p.grade}=${gradeLabel(p.grade)} / ${p.apptFixed?'アポ確定':'アポ未確定'}</div></div><div class="badge">${fmt(p.expectedPV||0)}PV</div></div><div class="small">${p.nextAction||'次アクション未設定'}</div>${p.memo?`<div class="small" style="margin-top:6px">${escapeHtml(p.memo)}</div>`:''}${canEditTarget(uid)?`<div class="row-actions" style="margin-top:10px"><button class="btn2" onclick="openModal('prospect','${uid}','${p.id}')">編集</button><button class="btn danger" onclick="deleteProspect('${uid}','${p.id}')">削除</button></div>`:''}</div>`;
+}
+
+function deletePvManual(uid,id){ if(!confirm('削除する？')) return; S.pvManual[uid]=pvManual(uid).filter(x=>x.id!==id); touch(uid,'pv'); renderApp(); }
+function toggleTodo(uid,id,status){ return setTodoStatus(uid,id,status); }
+function changeWeek(delta){ const d = new Date(weekBaseDate || todayStr()); weekBaseDate = addDays(startOfWeek(d), delta*7).toISOString().slice(0,10); renderApp(); }
+function deleteProspect(uid,id){ if(!confirm('削除する？')) return; S.prospects[uid] = prospectList(uid).filter(x=>x.id!==id); touch(uid,'prospect'); renderApp(); }
+
+function ymLabel(dateStr){ const d=new Date(dateStr); return `${d.getFullYear()}年${d.getMonth()+1}月`; }
+function monthStart(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth(), 1); }
+function monthEnd(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+function addMonths(dateStr, delta){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth()+delta, 1).toISOString().slice(0,10); }
+function dateInRange(dateStr,start,end){ if(!dateStr||!start) return false; return dateStr>=start && dateStr<=(end||start); }
+function scheduleItemsOnDate(uid,dateStr){
+  const items=[];
+  scheduleList(uid).filter(x=>x.date===dateStr).forEach(x=>items.push({...x,kind:'schedule'}));
+  shiftList(uid).filter(x=>dateInRange(dateStr, x.dateStart||x.date, x.dateEnd||x.date)).forEach(x=>items.push({...x,kind:'shift'}));
+  commonSchedules().filter(x=>x.date===dateStr).forEach(x=>items.push({...x,kind:'common'}));
+  return items.sort((a,b)=> String(a.time||'').localeCompare(String(b.time||'')));
+}
+function changeScheduleMonth(delta){ scheduleMonthBase = addMonths(scheduleMonthBase || todayStr(), delta); const start=monthStart(scheduleMonthBase); const end=monthEnd(scheduleMonthBase); if(selectedScheduleDate < start.toISOString().slice(0,10) || selectedScheduleDate > end.toISOString().slice(0,10)) selectedScheduleDate = start.toISOString().slice(0,10); renderApp(); }
+function pickScheduleDate(dateStr){ selectedScheduleDate = dateStr; renderApp(); }
+function renderScheduleCalendar(uid){
+  const base = scheduleMonthBase || todayStr();
+  const start = monthStart(base); const end = monthEnd(base);
+  const gridStart = startOfWeek(start);
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const d = addDays(gridStart,i); const ds = d.toISOString().slice(0,10); const inMonth = d.getMonth()===start.getMonth();
+    const items = inMonth ? scheduleItemsOnDate(uid, ds) : [];
+    const itemHtml = items.slice(0,2).map(it=>{
+      const cls = it.kind==='common' ? 'common' : it.kind==='shift' ? 'shift' : (it.deadline?'deadline':'');
+      const label = it.kind==='shift' ? `勤務 ${it.type||''}` : it.kind==='common' ? `${it.time?it.time+' ':''}${it.title}` : `${it.time?it.time+' ':''}${it.title}`;
+      return `<div class="cal-chip ${cls}">${escapeHtml(label.trim())}</div>`;
+    }).join('');
+    const more = items.length>2 ? `<div class="small">+${items.length-2}件</div>` : '';
+    cells.push(`<div class="cal-cell ${inMonth?'':'empty'} ${items.length?'has-items':''} ${ds===selectedScheduleDate?'selected':''} ${ds===todayStr()?'today':''}" ${inMonth?`onclick="pickScheduleDate('${ds}')"`:''}><div class="cal-dayline"><div class="cal-day">${inMonth?d.getDate():''}</div>${items.length?`<div class="cal-count">${items.length}</div>`:''}</div>${itemHtml}${more}</div>`);
+  }
+  return `<div class="calendar-wrap"><div class="calendar-nav"><div class="row-actions"><button class="btn2" onclick="changeScheduleMonth(-1)">← 前月</button><button class="btn2" onclick="changeScheduleMonth(1)">次月 →</button></div><div class="calendar-title">${ymLabel(base)}</div><button class="btn2" onclick="pickScheduleDate(todayStr());scheduleMonthBase=todayStr().slice(0,7)+'-01';renderApp();">今月</button></div><div class="calendar-legend"><span class="lg-schedule">個人予定</span><span class="lg-shift">勤務</span><span class="lg-common">共通</span><span class="lg-deadline">期限重視</span></div><div class="calendar-grid"><div class="cal-weekday">月</div><div class="cal-weekday">火</div><div class="cal-weekday">水</div><div class="cal-weekday">木</div><div class="cal-weekday">金</div><div class="cal-weekday">土</div><div class="cal-weekday">日</div>${cells.join('')}</div></div>`;
+}
+function renderSelectedDateSchedule(uid){
+  const dateStr = selectedScheduleDate || todayStr();
+  const items = scheduleItemsOnDate(uid,dateStr);
+  if(!items.length) return `<div class="empty">${dateJp(dateStr)} の予定はありません</div>`;
+  return `<div class="list">${items.map(x=>{
+    if(x.kind==='schedule') return `<div class="item"><div class="item-top"><div><div class="item-name">${x.title}${x.autoMeeting?'<span class=\"todo-chip\">自動</span>':''}</div><div class="item-sub">${dateJp(x.date)} ${x.time||''}</div></div><span class="badge gray">${x.autoMeeting?'打合せ':'予定'}</span></div>${x.note?`<div class="small">${escapeHtml(x.note)}</div>`:''}${canEditTarget(uid)?`<div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('schedule','${uid}','${x.id}')">編集</button><button class="btn danger" onclick="deleteSchedule('${uid}','${x.id}')">削除</button></div>`:''}</div>`;
+    if(x.kind==='shift') return `<div class="item"><div class="item-top"><div><div class="item-name">${x.type}</div><div class="item-sub">${dateJp(x.dateStart||x.date)}〜${dateJp(x.dateEnd||x.date)}</div></div><span class="badge">勤務</span></div>${canEditTarget(uid)?`<div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('shift','${uid}','${x.id}')">編集</button><button class="btn danger" onclick="deleteShift('${uid}','${x.id}')">削除</button></div>`:''}</div>`;
+    return `<div class="item"><div class="item-top"><div><div class="item-name">${x.title}</div><div class="item-sub">${dateJp(x.date)} ${x.time||''}</div></div><span class="badge warn">共通</span></div>${x.note?`<div class="small">${escapeHtml(x.note)}</div>`:''}</div>`;
+  }).join('')}</div>`;
+}
+
+function renderSchedule(){
+  const u=currentSubject();
+  const targetDate = selectedScheduleDate || todayStr();
+  return `<div class="page-head"><div class="head-actions">${focusUserId?`<button class="btn2" onclick="goBack()">← 戻る</button>`:''}<div class="subject">${u.nick} / スケジュール</div></div>${canEditTarget(u.id)?`<div class="row-actions"><button class="btn2" onclick="openModal('schedule','${u.id}')">予定追加</button><button class="btn2" onclick="openModal('shift','${u.id}')">勤務追加</button></div>`:''}</div>
+  <div class="card">
+    <div class="section-head"><h3>カレンダー</h3><button class="btn2" onclick="openModal('weekview')">みんなの予定</button></div>
+    <div class="muted">最終記入履歴 ${lastDateLabel(lastUpdate(u.id,'schedule'))}</div>
+    <div style="margin-top:10px">${renderScheduleCalendar(u.id)}</div>
+  </div>
+  <div class="card selected-day-panel">
+    <div class="section-head"><h3>${dateJp(targetDate)} の予定</h3><div class="deadline-strong">期限・予定をここで確認</div></div>
+    ${renderSelectedDateSchedule(u.id)}
+  </div>
+  <div class="card"><div class="section-head"><h3>今後の予定一覧</h3></div><div class="list">${renderScheduleList(u.id)}</div></div>`;
+}
+
+function deleteSchedule(uid,id){ if(!confirm('削除する？')) return; S.schedules[uid]=scheduleList(uid).filter(x=>x.id!==id); touch(uid,'schedule'); renderApp(); }
+function deleteShift(uid,id){ if(!confirm('削除する？')) return; S.shifts[uid]=shiftList(uid).filter(x=>x.id!==id); touch(uid,'schedule'); renderApp(); }
+
+function startOfWeek(d=new Date()){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function expandShiftDates(s){
+  const start = s.dateStart || s.date || '';
+  const end = s.dateEnd || s.date || start;
+  const out=[]; if(!start) return out;
+  let cur=new Date(start+'T00:00:00'); const last=new Date(end+'T00:00:00');
+  while(cur<=last){ out.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
+  return out;
+}
+function weekRowsHtml(baseDate){
+  const start=startOfWeek(baseDate); const users = S.users.filter(u=>u.role!=='leader');
+  const headers = Array.from({length:7}, (_,i)=>{ const d=addDays(start,i); return `<div class="hd">${['月','火','水','木','金','土','日'][i]}<br>${d.toISOString().slice(5,10)}</div>`; }).join('');
+  const rows = users.map(u=>{
+    const cells = Array.from({length:7}, (_,i)=>{
+      const ds = addDays(start,i).toISOString().slice(0,10);
+      const shifts = shiftList(u.id).filter(x=>expandShiftDates(x).includes(ds)).map(x=>x.type).join(' / ');
+      const evts = scheduleList(u.id).filter(x=>x.date===ds).map(x=>`${x.time?x.time+' ':''}${x.title}`).join('<br>');
+      const commons = commonSchedules().filter(x=>x.date===ds).map(x=>`★ ${x.time?x.time+' ':''}${x.title}`).join('<br>');
+      return `<div class="cell">${shifts?`<div class="sched-shift">${shifts}</div>`:''}${evts?`<div class="sched-evt">${evts}</div>`:''}${commons?`<div class="sched-common">${commons}</div>`:''}${!shifts&&!evts&&!commons?`<span class="muted">-</span>`:''}</div>`;
+    }).join('');
+    return `<div class="nm">${u.nick}</div>${cells}`;
+  }).join('');
+  return `<div class="table-wrap"><div class="schedule-table"><div class="hd">メンバー</div>${headers}${rows}</div></div>`;
+}
+
+function renderScheduleList(uid){
+  const items=[...scheduleList(uid).map(x=>({...x,_kind:'予定',_date:x.date})),...shiftList(uid).map(x=>({...x,_kind:'勤務',_date:x.dateStart||x.date}))].sort((a,b)=>String(a._date||'9999-12-31').localeCompare(String(b._date||'9999-12-31')));
+  return items.length?items.map(x=> x._kind==='予定' ? `<div class="item"><div class="item-top"><div><div class="item-name">${x.title}</div><div class="item-sub">${dateJp(x.date)} ${x.time||''}</div></div><span class="badge gray">${x.autoMeeting?'打合せ':'予定'}</span></div>${x.note?`<div class="small">${escapeHtml(x.note)}</div>`:''}${canEditTarget(uid)?`<div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('schedule','${uid}','${x.id}')">編集</button><button class="btn danger" onclick="deleteSchedule('${uid}','${x.id}')">削除</button></div>`:''}</div>` : `<div class="item"><div class="item-top"><div><div class="item-name">${x.type}</div><div class="item-sub">${dateJp(x.dateStart||x.date)}〜${dateJp(x.dateEnd||x.date)}</div></div><span class="badge">勤務</span></div>${canEditTarget(uid)?`<div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('shift','${uid}','${x.id}')">編集</button><button class="btn danger" onclick="deleteShift('${uid}','${x.id}')">削除</button></div>`:''}</div>`).join(''):`<div class="empty">予定なし</div>`;
+}
+
+function renderTodo(){
+  const u=currentSubject();
+  const list = todoFeed(u.id);
+  return `<div class="page-head"><div class="head-actions">${focusUserId?`<button class="btn2" onclick="goBack()">← 戻る</button>`:''}<div class="subject">${u.nick} / TODO</div></div>${canEditTarget(u.id)?`<button class="btn" onclick="openModal('todo','${u.id}')">追加</button>`:''}</div><div class="card"><div class="list">${list.length?list.map(t=>`<div class="item"><div class="item-top"><div><div class="item-name">${t.title}${t.auto?`<span class="todo-chip">${t.source}</span>`:''}</div><div class="item-sub">${deadlineHtml(t.due)}</div></div><span class="badge ${t.status==='hold'?'hold':'gray'}">${t.status==='hold'?'保留':'未対応'}</span></div>${canEditTarget(u.id)&&!t.auto?`<div class="row-actions" style="margin-top:10px"><button class="btn2" onclick="setTodoStatus('${u.id}','${t.id}','hold')">保留</button><button class="btn" onclick="setTodoStatus('${u.id}','${t.id}','done')">済</button><button class="btn2" onclick="openModal('todo','${u.id}','${t.id}')">編集</button><button class="btn danger" onclick="deleteTodo('${u.id}','${t.id}')">削除</button></div>`:''}</div>`).join(''):`<div class="empty">TODOなし</div>`}</div></div>`;
+}
+function setTodoStatus(uid,id,status){ const x=todoList(uid).find(t=>t.id===id); if(!x) return; if(status==='done'){ addTodoTemplate(uid,x.title); S.todos[uid]=todoList(uid).filter(t=>t.id!==id); } else { x.status='hold'; addTodoTemplate(uid,x.title); } touch(uid,'todo'); renderApp(); }
+function deleteTodo(uid,id){ if(!confirm('削除する？')) return; const x=todoList(uid).find(t=>t.id===id); if(x) addTodoTemplate(uid,x.title); S.todos[uid]=todoList(uid).filter(x=>x.id!==id); touch(uid,'todo'); renderApp(); }
+
+function renderMeeting(){
+  const u=currentSubject(); const list=meetingList(u.id).sort((a,b)=>String(b.date).localeCompare(String(a.date))); 
+  return `<div class="card"><div class="section-head"><h3>打合せ</h3><div class="row-actions"><button class="btn" onclick="quickMeeting('${u.id}')">今日実施した</button><button class="btn2" onclick="openModal('meeting','${u.id}')">詳細入力</button></div></div><div class="small">打合せスコア ${meetingScore(u.id)}点 / 実施すると自動で自分のカレンダーに入る</div><div class="list">${list.length?list.map(x=>`<div class="item"><div class="item-top"><div><div class="item-name">${dateJp(x.date)}</div></div></div>${x.note?`<div class="small">${escapeHtml(x.note)}</div>`:''}<div class="row-actions" style="margin-top:8px"><button class="btn danger" onclick="deleteMeeting('${u.id}','${x.id}')">削除</button></div></div>`).join(''):`<div class="empty">打合せ記録なし</div>`}</div></div>`;
+}
+function quickMeeting(uid){ const obj={id:'m'+Date.now(),date:todayStr(),note:''}; S.meetings[uid].unshift(obj); touch(uid,'meeting'); ensureMeetingSchedule(uid,obj); renderApp(); }
+function deleteMeeting(uid,id){ if(!confirm('削除する？')) return; S.meetings[uid]=meetingList(uid).filter(x=>x.id!==id); removeMeetingSchedule(uid,id); touch(uid,'meeting'); renderApp(); }
+
+
+function depthFrom(rootId,targetId){
+  let depth=0, cur=userById(targetId);
+  const seen=new Set();
+  while(cur && cur.parentId && !seen.has(cur.id)){
+    seen.add(cur.id);
+    depth += 1;
+    if(cur.parentId===rootId) return depth;
+    cur = userById(cur.parentId);
+  }
+  return depth || 1;
+}
+
+
+function isPvTreeOpen(rootId,nodeId){ return !!((pvTreeOpen[rootId]||{})[nodeId]); }
+function togglePvTree(rootId,nodeId){
+  pvTreeOpen[rootId] ||= {};
+  pvTreeOpen[rootId][nodeId] = !pvTreeOpen[rootId][nodeId];
+  renderApp();
+}
+function renderLosTree(rootId){
+  const fronts = losChildrenOf(rootId);
+  const selfUser = userById(String(rootId));
+  const selfPlan = selfUser ? projectedOwnPlanPV(selfUser.id) : 0;
+  const selfGoal = selfUser ? Number(selfUser.goalTotalPV||0) : 0;
+  const selfActual = selfUser ? Number(selfUser.actualAwardPV||0) : 0;
+  const selfCard = `
+    <div class="item tree-card" style="margin-bottom:10px">
+      <div class="item-top">
+        <div>
+          <div class="item-name">${losName(rootId)} <span class="badge">自分</span></div>
+          <div class="item-sub">スポンサー ${losName((selfUser && selfUser.parentId) || '') || 'なし'} / 実績 ${fmt(selfActual)}PV / 計画 ${fmt(selfPlan)}PV ${selfGoal?`/ 目標 ${fmt(selfGoal)}PV`:''}</div>
+          <div class="small">${escapeHtml(losName(rootId))}</div>
+        </div>
+        <div class="row-actions"><button class="btn" onclick="event.stopPropagation();openModal('pvmanual','${String(rootId)}')">編集</button>${selfUser ? `<button class="btn2" onclick="event.stopPropagation();openMemberPage('${selfUser.id}')">詳細</button>`:''}</div>
+      </div>
+    </div>`;
+  if(!fronts.length) return `<div>${selfCard}<div class="empty">配下メンバーなし</div></div>`;
+  return `<div>${selfCard}<div class="list">` + fronts.map(row=>renderLosTreeNode(rootId,row,1)).join('') + `</div></div>`;
+}
+function renderLosTreeNode(rootId,row,depth){
+  const kids = losChildrenOf(row.id);
+  const isOpen = isPvTreeOpen(rootId,row.id);
+  const appUser = userById(String(row.id));
+  const sponsor = losName(row.sponsorId);
+  const path = losPath(rootId,row.id);
+  const pathText = path.length ? `${path.join(' > ')} > ${losName(row.id)}` : `${losName(rootId)} > ${losName(row.id)}`;
+  const targetUid = appUser ? String(appUser.id) : String(row.id);
+  const planPV = projectedOwnPlanPV(targetUid);
+  const goalPV = appUser ? Number(appUser.goalTotalPV||0) : 0;
+  const labelMap={1:'フロント',2:'セカンド',3:'サード',4:'フォース'};
+  const badge = depth===1 ? `<span class="badge">${labelMap[depth]||'フロント'}</span>` : `<span class="badge gray">${labelMap[depth]||`${depth}段目`}</span>`;
+  const chevron = kids.length ? `<span class="tree-chevron">${isOpen?'▾':'▸'}</span>` : `<span class="badge ok">末端</span>`;
+  const detail = appUser ? `<button class="btn2" onclick="event.stopPropagation();openMemberPage('${appUser.id}')">詳細</button>` : ``;
+  const editBtn = `<button class="btn" onclick="event.stopPropagation();openModal('pvmanual','${targetUid}')">編集</button>`;
+  const nameTap = `<div class="item-name">${losName(row.id)} ${badge}</div>`;
+  return `
+    <div class="item tree-card" style="margin-left:${Math.max(0,(depth-1)*14)}px" ${kids.length?`onclick="togglePvTree('${rootId}','${row.id}')"`:''}>
+      <div class="item-top">
+        <div>
+          ${nameTap}
+          <div class="item-sub">スポンサー ${sponsor} / 実績 ${fmt(row.actualPV||0)}PV / 計画 ${fmt(planPV)}PV ${goalPV?`/ 目標 ${fmt(goalPV)}PV`:''}</div>
+          <div class="small">${escapeHtml(pathText)}</div>
+        </div>
+        <div class="row-actions">${chevron}${editBtn}${detail}</div>
+      </div>
+    </div>
+    ${isOpen ? kids.map(k=>renderLosTreeNode(rootId,k,depth+1)).join('') : ''}
+  `;
+}
+
+function collectAlerts(){
+  const out=[]; const today=todayStr();
+  for(const u of S.users.filter(x=>x.role!=='leader')){
+    prospectList(u.id).forEach(p=>{ if(p.nextActionDue && p.nextActionDue<=today) out.push({user:u.nick,cat:'プロスペ',title:`${p.name} / ${p.nextAction||'次アクション'}`,due:p.nextActionDue}); });
+    pvManual(u.id).forEach(v=>{ if(v.due && v.due<=today) out.push({user:u.nick,cat:'PV計画',title:`${v.name} / ${v.action||'対応'}`,due:v.due}); });
+    todoList(u.id).filter(t=>t.status!=='done' && t.due && t.due<=today).forEach(t=> out.push({user:u.nick,cat:'TODO',title:t.title,due:t.due}));
+    const upd=[['meeting','打合せ'],['schedule','スケジュール'],['pv','PV計画'],['prospect','プロスペ']];
+    upd.forEach(([k,label])=>{ const d=daysSince(lastUpdate(u.id,k)); if(d>=3) out.push({user:u.nick,cat:'更新アラート',title:`${label} ${d}日未更新`,due:''}); });
+  }
+  return out;
+}
+function categoryAlertSummary(uid){
+  const today=todayStr();
+  const prospects = prospectList(uid).filter(p=>p.nextActionDue && p.nextActionDue<=today).length;
+  const plans = pvManual(uid).filter(v=>v.due && v.due<=today).length;
+  const todos = todoList(uid).filter(t=>t.status!=='done' && t.due && t.due<=today).length;
+  const stale = {
+    meeting: daysSince(lastUpdate(uid,'meeting')),
+    schedule: daysSince(lastUpdate(uid,'schedule')),
+    pv: daysSince(lastUpdate(uid,'pv')),
+    prospect: daysSince(lastUpdate(uid,'prospect')),
+    todo: daysSince(lastUpdate(uid,'todo'))
+  };
+  return {
+    prospect: prospects ? `期限${prospects}件` : (stale.prospect>=7?`${stale.prospect}日未更新`:stale.prospect>=3?`${stale.prospect}日空き`:''),
+    pv: plans ? `期限${plans}件` : (stale.pv>=7?`${stale.pv}日未更新`:stale.pv>=3?`${stale.pv}日空き`:''),
+    todo: todos ? `期限${todos}件` : (stale.todo>=7?`${stale.todo}日未更新`:stale.todo>=3?`${stale.todo}日空き`:''),
+    schedule: stale.schedule>=7?`${stale.schedule}日未更新`:stale.schedule>=3?`${stale.schedule}日空き`:'',
+    meeting: stale.meeting>=7?`${stale.meeting}日未更新`:stale.meeting>=3?`${stale.meeting}日空き`:''
+  };
+}
+function alertBadgeText(txt){ return txt?`<span class="badge bad">${txt}</span>`:`<span class="badge ok">OK</span>`; }
+function renderAdminAlerts(){
+  const members=S.users.filter(x=>x.role!=='leader');
+  return `<div class="card"><div class="section-head"><h3>メンバー別アラート</h3><div class="small">各カテゴリを一発チェック</div></div><div class="list">${members.map(u=>{ const a=categoryAlertSummary(u.id); return `<div class="item"><div class="item-top"><div><div class="item-name">${u.nick}</div><div class="item-sub">100点評価 ${hundredScore(u.id)}点 / 実績 ${fmt(u.actualAwardPV)}PV</div></div><button class="btn2" onclick="openMemberPage('${u.id}')">ページへ</button></div><div class="grid2" style="margin-top:10px"><div class="pv-chip">PV計画 ${alertBadgeText(a.pv)}</div><div class="pv-chip">プロスペ ${alertBadgeText(a.prospect)}</div><div class="pv-chip">打合せ ${alertBadgeText(a.meeting)}</div><div class="pv-chip">スケジュール ${alertBadgeText(a.schedule)}</div><div class="pv-chip">TODO ${alertBadgeText(a.todo)}</div></div></div>`; }).join('')}</div></div>`;
+}
+function renderCommonScheduleAdmin(){
+  const list=sortByDue(commonSchedules());
+  return `<div class="card"><div class="section-head"><h3>共通スケジュール</h3><button class="btn" onclick="openModal('commonschedule')">追加</button></div><div class="list">${list.length?list.map(x=>`<div class="item"><div class="item-top"><div><div class="item-name">${x.title}</div><div class="item-sub">${dateJp(x.date)} ${x.time||''}</div></div></div>${x.note?`<div class="small">${escapeHtml(x.note)}</div>`:''}<div class="row-actions" style="margin-top:8px"><button class="btn2" onclick="openModal('commonschedule','','${x.id}')">編集</button><button class="btn danger" onclick="deleteCommonSchedule('${x.id}')">削除</button></div></div>`).join(''):`<div class="empty">共通スケジュールなし</div>`}</div></div>`;
+}
+function renderMembersAdmin(){
+  return `<div class="card"><div class="section-head"><h3>メンバー管理</h3><button class="btn" onclick="openModal('member')">追加</button></div><div class="list">${S.users.map(u=>`<div class="item"><div class="item-top"><div><div class="item-name">${u.nick}</div><div class="item-sub">${u.id} / ${u.role==='leader'?'管理者':'メンバー'} / 親 ${u.parentId||'-'}</div></div><span class="badge ${u.role==='leader'?'warn':'gray'}">PIN ${u.pin}</span></div><div class="row-actions" style="margin-top:10px"><button class="btn2" onclick="openMemberPage('${u.id}')">ページへ</button>${u.role!=='leader'?`<button class="btn2" onclick="openModal('member','${u.id}')">編集</button><button class="btn danger" onclick="deleteMember('${u.id}')">削除</button>`:''}</div></div>`).join('')}</div></div>`;
+}
+function deleteMember(uid){ if(!confirm('削除する？')) return; S.users = S.users.filter(u=>u.id!==uid); ['updates','meetings','todos','prospects','schedules','shifts','pvManual'].forEach(k=>delete S[k][uid]); S.users.forEach(u=>{ if(u.parentId===uid) u.parentId='shintaro'; }); save(); renderApp(); }
+function deleteCommonSchedule(id){ if(!confirm('削除する？')) return; S.commonSchedules=(S.commonSchedules||[]).filter(x=>x.id!==id); save(); renderApp(); }
+function renderPvAdmin(){
+  const members=S.users.filter(u=>u.role!=='leader');
+  // グループ全体の集計 - LOS行のactualPVはロールアップ済みなのでそのまま使う
+  const rootId = S.loggedIn;
+  const rootUser = userById(rootId);
+  const rootLosRow = losRow(rootId);
+  const allDesc = descendantsOf(rootId);
+  const totalActual = rootLosRow ? Number(rootLosRow.actualPV||0) : Number(rootUser?.actualAwardPV||0);
+  const totalPlan = projectedOwnPlanPV(rootId) + sum(allDesc, u=>projectedOwnPlanPV(u.id));
+  return `
+  <div class="card">
+    <div class="section-head"><h3>グループ全体サマリー</h3><div class="small">全ダウンライン集計</div></div>
+    <div class="grid3">
+      <div class="metric"><div class="k">📊 グループ実績PV</div><div class="v" style="color:#18a164">${fmt(totalActual)}</div></div>
+      <div class="metric"><div class="k">📋 グループ計画PV</div><div class="v" style="color:#5865f2">${fmt(totalPlan)}</div></div>
+      <div class="metric"><div class="k">合計見通し</div><div class="v">${fmt(totalActual+totalPlan)}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">PV実績インポート</div>
+    <div class="muted">Excelインポートか手入力で実績PVを更新。</div>
+    <div class="row-actions" style="margin-top:12px">
+      <input id="excelInput" type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" style="display:none">
+      <button class="btn2" onclick="document.getElementById('excelInput').click()">Excelを選択</button>
+    </div>
+    <div class="small" style="margin-top:8px">最終インポート: ${S.actualPVImportedAt?agoText(S.actualPVImportedAt):'未実施'}</div>
+  </div>
+  <div class="card">
+    <div class="section-head"><h3>メンバー別PVサマリー</h3><div class="small">実績 / 計画 / プロスペ / グループ</div></div>
+    <div class="list" style="margin-top:10px">
+      ${members.map(u=>{
+        const myPlan = projectedOwnPlanPV(u.id);
+        const myActual = Number(u.actualAwardPV||0);
+        const uLosRow = losRow(u.id);
+        const grpActual = uLosRow ? Number(uLosRow.actualPV||0) : myActual;
+        const grpPlan = groupPlanPV(u.id);
+        const myProsp = projectedProspectPV(u.id,false)+projectedProspectPV(u.id,true);
+        const totalPV = grpActual + grpPlan;
+        const goal = Number(u.goalTotalPV)||0;
+        const pct = goal>0?Math.min(100,Math.round(totalPV/goal*100)):0;
+        const barColor = pct>=100?'#18a164':pct>=60?'#5865f2':pct>=30?'#d97706':'#e5484d';
+        const prospectCount=prospectList(u.id).filter(p=>p.grade!=='D').length;
+        const apptCount=prospectList(u.id).filter(p=>p.apptFixed).length;
+        return `<div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-name">${u.nick}</div>
+              <div class="item-sub">目標 ${fmt(goal)}PV / 達成見通し ${pct}%</div>
+            </div>
+            <div class="row-actions">
+              <button class="btn2" onclick="openModal('actualpv','${u.id}')">実績更新</button>
+              <button class="btn2" onclick="openMemberPage('${u.id}')">詳細</button>
+            </div>
+          </div>
+          <div style="margin:8px 0;background:#eef2ff;border-radius:6px;height:8px;overflow:hidden">
+            <div style="height:100%;border-radius:6px;background:${barColor};width:${pct}%"></div>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div class="pv-chip">📊 自分実績<b>${fmt(myActual)}PV</b></div>
+            <div class="pv-chip">📋 自分計画<b>${fmt(myPlan)}PV</b></div>
+            <div class="pv-chip">👥 Grp実績<b style="color:#18a164">${fmt(grpActual)}PV</b></div>
+            <div class="pv-chip">📈 Grp計画<b style="color:#5865f2">${fmt(grpPlan)}PV</b></div>
+            <div class="pv-chip">🎯 プロスペ<b style="color:#d97706">${fmt(myProsp)}PV</b></div>
+            <div class="pv-chip">アポ確定<b>${prospectCount}人中${apptCount}人</b></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+
+function renderDataIO(){
+  return `
+  <div class="card">
+    <div class="section-head"><h3>📤 データエクスポート</h3><div class="small">全データをJSONで保存</div></div>
+    <div class="muted" style="margin-bottom:12px">現在のアプリ全データ（プロスペ・PV計画・TODO・打合せ・スケジュール）をJSONファイルとしてダウンロードできます。</div>
+    <button class="btn" onclick="exportData()">💾 JSONをダウンロード</button>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>📥 データインポート</h3><div class="small">JSONを読み込んで復元</div></div>
+    <div class="muted" style="margin-bottom:12px">エクスポートしたJSONファイルを読み込みます。現在のデータは<b>上書き</b>されます。</div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn2" onclick="document.getElementById('importFileInput').click()">📂 JSONを選択してインポート</button>
+    <div id="importStatus" class="small" style="margin-top:8px;color:var(--ok)"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>📊 プロスペ一括インポート</h3><div class="small">Excelからプロスペを更新</div></div>
+    <div class="muted" style="margin-bottom:8px">「プロスぺ管理」シートを含むExcelファイルを読み込みます。既存のプロスペは<b>上書き</b>されます。</div>
+    <div style="background:#fff4df;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#7a4a00">
+      📋 Excelの列順: スポンサー / プロスぺ名前 / 次アポ(期限) / アポ確定 / 何をする / 進捗 / 情報
+    </div>
+    <input type="file" id="prospExcelInput" accept=".xlsx,.xls" style="display:none" onchange="importProspectExcel(event)">
+    <button class="btn2" onclick="document.getElementById('prospExcelInput').click()">📂 Excelを選択</button>
+    <div id="prospImportStatus" class="small" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h3>🗑️ データリセット</h3><div class="small" style="color:var(--bad)">注意：元に戻せません</div></div>
+    <div class="muted" style="margin-bottom:12px">指定したユーザーのデータを初期化します。</div>
+    <div class="grid2">
+      <button class="btn" style="background:var(--bad)" onclick="if(confirm('全ユーザーのプロスペ・TODO・打合せ・PV計画をリセットします。本当によいですか？')) resetAllActivityData()">🗑️ 活動データをリセット</button>
+      <button class="btn2" onclick="if(confirm('localStorageを完全削除して初期状態に戻します。よいですか？')) { localStorage.clear(); location.reload(); }">♻️ 完全リセット</button>
+    </div>
+  </div>
+  `;
+}
+
+function exportData(){
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date().toISOString().slice(0,10);
+  a.download = `pfs_backup_${d}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.users || !Array.isArray(data.users)) throw new Error('不正なフォーマットです');
+      // 現在のlocalStorageキーに保存
+      localStorage.setItem(STORAGE_KEY, e.target.result);
+      document.getElementById('importStatus').textContent = '✅ インポート完了！ページを再読み込みします...';
+      document.getElementById('importStatus').style.color = 'var(--ok)';
+      setTimeout(() => location.reload(), 1500);
+    }catch(err){
+      document.getElementById('importStatus').textContent = '❌ エラー: ' + err.message;
+      document.getElementById('importStatus').style.color = 'var(--bad)';
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function importProspectExcel(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('prospImportStatus');
+  statusEl.textContent = '読み込み中...';
+  statusEl.style.color = 'var(--muted)';
+  
+  if(typeof XLSX === 'undefined'){
+    statusEl.textContent = '❌ XLSXライブラリが読み込めていません';
+    statusEl.style.color = 'var(--bad)';
+    return;
+  }
+  
+  const sponsorMap = {
+    'カエデ':'142672','マユ':'326158','ヒカリ':'474713','ルナ':'366832',
+    'シュウタ':'629910','ユウスケ':'752435','さゆりん':'782955','ヒヨリ':'620503',
+    'ハルヒコ':'710176','ハヤテ':'721489','ケンタ':'689241','リュウ':'762617','ハルコ':'9806551'
+  };
+  
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      // 「プロスぺ管理」シートを探す
+      const sheetName = wb.SheetNames.find(n => n.includes('プロスぺ') || n.includes('プロスペ'));
+      if(!sheetName) throw new Error('「プロスぺ管理」シートが見つかりません');
+      
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(rows.length < 2) throw new Error('データが少なすぎます');
+      
+      // ヘッダー行を探す（スポンサー列がある行）
+      let headerRow = -1;
+      for(let i=0;i<rows.length;i++){
+        if(rows[i].some(c=>String(c).includes('スポンサー'))){headerRow=i;break;}
+      }
+      if(headerRow<0) throw new Error('ヘッダー行が見つかりません');
+      
+      const headers = rows[headerRow].map(h=>String(h||''));
+      const ciSponsor = headers.findIndex(h=>h.includes('スポンサー'));
+      const ciName = headers.findIndex(h=>h.includes('名前'));
+      const ciDue = headers.findIndex(h=>h.includes('次アポ') || h.includes('期限'));
+      const ciAppt = headers.findIndex(h=>h.includes('アポ確定'));
+      const ciAction = headers.findIndex(h=>h.includes('何をする'));
+      const ciMemo1 = headers.findIndex(h=>h.includes('進捗'));
+      const ciMemo2 = headers.findIndex(h=>h.includes('情報'));
+      
+      const newProspects = {};
+      const counters = {};
+      
+      for(let i=headerRow+1;i<rows.length;i++){
+        const row = rows[i];
+        const sponsor = String(row[ciSponsor]||'').trim();
+        const name = String(row[ciName]||'').trim();
+        
+        if(!name || name==='nan' || name==='プロスペ探し') continue;
+        
+        let uid = null;
+        for(const [key,val] of Object.entries(sponsorMap)){
+          if(sponsor.includes(key)){uid=val;break;}
+        }
+        if(!uid) continue;
+        
+        let dueStr = '';
+        const dueRaw = String(row[ciDue]||'').trim();
+        if(dueRaw && dueRaw!=='nan'){
+          // XLSX日付シリアル値の場合
+          const dueNum = Number(row[ciDue]);
+          if(!isNaN(dueNum) && dueNum > 40000){
+            const d = XLSX.SSF.parse_date_code(dueNum);
+            if(d) dueStr = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+          } else if(dueRaw.includes('/') || dueRaw.includes('-')){
+            const parts = dueRaw.split(/[\/\-]/);
+            if(parts.length===3) dueStr = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0').replace(/^0+$/,'01')}`;
+          }
+        }
+        
+        const apptFixed = ['1','1.0','true','TRUE','はい'].includes(String(row[ciAppt]||'').trim());
+        const nextAction = String(row[ciAction]||'').trim().replace(/^nan$/,'');
+        const memo = [row[ciMemo1],row[ciMemo2],...row.slice(7)].map(v=>String(v||'').trim()).filter(v=>v&&v!=='nan').join(' / ');
+        const grade = apptFixed ? 'A' : (dueStr ? 'B' : 'C');
+        
+        counters[uid] = (counters[uid]||0);
+        const pid = 'xl-' + uid + '-' + (counters[uid]++);
+        
+        if(!newProspects[uid]) newProspects[uid] = [];
+        newProspects[uid].push({id:pid,name,category:'プロスペ',grade,expectedPV:0,
+          apptFixed,nextAction,nextActionDue:dueStr,memo});
+      }
+      
+      // S.prospectsを更新
+      S.prospects = {...S.prospects, ...newProspects};
+      // 更新日時を記録
+      for(const uid of Object.keys(newProspects)){
+        touch(uid,'prospect');
+      }
+      save();
+      
+      const total = Object.values(newProspects).reduce((a,v)=>a+v.length,0);
+      statusEl.textContent = `✅ ${total}件のプロスペをインポートしました`;
+      statusEl.style.color = 'var(--ok)';
+      renderApp();
+    }catch(err){
+      statusEl.textContent = '❌ エラー: ' + err.message;
+      statusEl.style.color = 'var(--bad)';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+function resetAllActivityData(){
+  for(const u of S.users){
+    S.prospects[u.id] = [];
+    S.todos[u.id] = [];
+    S.meetings[u.id] = [];
+    S.pvManual[u.id] = [];
+    if(S.updates[u.id]) S.updates[u.id] = {meeting:'',schedule:'',pv:'',prospect:'',todo:''};
+  }
+  save();
+  alert('活動データをリセットしました');
+  renderApp();
+}
+
+function importExcel(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){
+    alert('Excelライブラリが読み込めていません。手動更新を使ってください。');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1, defval:''});
+      if(!rows.length) throw new Error('empty');
+
+      let headerRow = -1;
+      for(let i=0;i<Math.min(rows.length,15);i++){
+        const header = rows[i].map(x=>String(x||'').trim());
+        const hasName = header.some(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
+        const hasPv = header.some(h=>/アワードPV|award\s*pv|組織PV合計|PV/i.test(h));
+        if(hasName && hasPv){
+          headerRow = i;
+          break;
+        }
+      }
+      if(headerRow < 0) throw new Error('columns');
+
+      const header = rows[headerRow].map(x=>String(x||'').trim());
+      const nameIdx = header.findIndex(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
+      let pvIdx = header.findIndex(h=>/アワードPV/i.test(h));
+      if(pvIdx < 0) pvIdx = header.findIndex(h=>/組織PV合計/i.test(h));
+      if(pvIdx < 0) pvIdx = header.findIndex(h=>/PV/i.test(h));
+      const idIdx = header.findIndex(h=>/^(ABO番号|ID)$/i.test(h) || /ABO番号/i.test(h));
+      if(nameIdx < 0 || pvIdx < 0) throw new Error('columns');
+
+      let updated = 0;
+      const normalize = s => String(s||'').replace(/\s+/g,'').replace(/・/g,'').trim();
+      for(const r of rows.slice(headerRow+1)){
+        const rawName = String(r[nameIdx]||'').trim();
+        const rawId = idIdx >= 0 ? String(r[idIdx]||'').trim() : '';
+        const pv = Number(String(r[pvIdx]||'').replace(/,/g,''));
+        if((!rawName && !rawId) || !Number.isFinite(pv)) continue;
+        let hit = null;
+        if(rawId) hit = S.users.find(u=>String(u.id)===rawId);
+        if(!hit && rawName){
+          const normName = normalize(rawName);
+          hit = S.users.find(u=>normalize(u.nick)===normName || normalize(losName(u.id))===normName);
+        }
+        if(hit){
+          hit.actualAwardPV = pv;
+          updated += 1;
+        }
+      }
+      if(!updated) throw new Error('nomatch');
+      S.actualPVImportedAt = nowIso();
+      save();
+      renderApp();
+      alert(`インポート完了（${updated}件更新）`);
+    }catch(err){
+      console.error(err);
+      const msg = err && err.message === 'nomatch'
+        ? '一致するメンバーが見つかりませんでした。ABO番号または名前列を確認してください。'
+        : 'インポートに失敗しました。ヘッダー行に「名前」と「アワードPV」または「PV」列があるか確認してください。';
+      alert(msg);
+    } finally {
+      if(ev && ev.target) ev.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function openModal(mode, uid='', editId=''){
+  modalMode = {mode, uid, editId, weekDate:todayStr()};
+  const m = document.getElementById('modal'); const t = document.getElementById('modalTitle'); const b = document.getElementById('modalBody');
+  m.classList.add('open');
+  const user = uid ? userById(uid) : null;
+  const modalDisplayName = user?.nick || losName(uid) || uid || '';
+  if(mode==='goal'){
+    t.textContent = `${user.nick} / 今月の目標`;
+    b.innerHTML = `<div class="field"><label>目標PV(合計)</label><input id="fGoalTotal" type="number" value="${user.goalTotalPV||0}"></div><div class="field" style="margin-top:10px"><label>目標PV(消耗品計)</label><input id="fGoalCons" type="number" value="${user.goalConsumablePV||0}"></div><div class="grid2" style="margin-top:10px"><div class="field"><label>目標フロントUP人数</label><input id="fGoalFrontUp" type="number" value="${user.goalFrontUp||user.goalMemberUp||0}"></div><div class="field"><label>今月フロントUP済人数</label><input id="fActualFrontUp" type="number" value="${user.actualFrontUp||user.actualMemberUp||0}"></div></div><div class="field" style="margin-top:10px"><label>目標グループUP人数</label><input id="fGoalGroupUp" type="number" value="${user.goalGroupUp||0}"></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='pvmanual'){
+    const x = editId ? pvManual(uid).find(v=>v.id===editId) : null;
+    const selProduct = x?.largeProduct||'';
+    t.textContent = `${modalDisplayName} / PV計画入力`;
+    const displayName = x?.name || modalDisplayName || '';
+    b.innerHTML = `<div class="field"><label>対象メンバー</label><input value="${escapeHtml(displayName)}" readonly></div><input id="fName" type="hidden" value="${escapeHtml(displayName)}"><div class="field" style="margin-top:10px"><label>いつまでに(期限)</label><input id="fDue" type="date" value="${x?.due||''}"></div><div class="field" style="margin-top:10px"><label>何をするのか</label><input id="fAction" value="${x?.action||''}" placeholder="例：空気クロージング"></div><div class="grid2" style="margin-top:10px"><div class="field"><label>見込みPV(消耗品)</label><input id="fConsPv" type="number" value="${x?.consumablePV||0}" oninput="recalcPvTotal()"></div><div class="field"><label>見込みPV(大型)</label><input id="fLargePv" type="number" value="${x?.largePV||0}" oninput="recalcPvTotal()"></div></div><div class="field" style="margin-top:10px"><label>大型製品</label><input id="fLargeProduct" value="${selProduct}" placeholder="製品名"></div><div class="prod-pick">${LARGE_PRODUCTS.map(p=>`<button type="button" class="prod-btn" onclick="pickLargeProduct('${p.name}',${p.pv})"><div>${p.name}</div><div class="pv">${p.pv.toLocaleString('ja-JP')}PV</div></button>`).join('')}</div><div class="field" style="margin-top:10px"><label>見込みPV(合計)</label><input id="fPv" type="number" value="${x?.targetPV||0}" readonly></div><div class="field" style="margin-top:10px"><label>メモ</label><textarea id="fNote">${x?.note||''}</textarea></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+    setTimeout(recalcPvTotal,0);
+  } else if(mode==='prospect'){
+    const x = editId ? prospectList(uid).find(v=>v.id===editId) : null;
+    t.textContent = `${user.nick} / プロスペ`;
+    b.innerHTML = `<div class="field"><label>名前</label><input id="fName" value="${x?.name||''}"></div><div class="grid2" style="margin-top:10px"><div class="field"><label>ランク</label><select id="fGrade">${['A','B','C','D'].map(v=>`<option value="${v}" ${x?.grade===v?'selected':''}>${v} = ${gradeLabel(v)}</option>`).join('')}</select><div class="small" style="margin-top:6px">A=アムウェイアポ狙える / B=ニーズ調査 / C=アポ取り / D=次月以降対応</div></div><div class="field"><label>カテゴリ</label><select id="fCat">${['プロスペ','小売先','PC','既存客'].map(v=>`<option ${x?.category===v?'selected':''}>${v}</option>`).join('')}</select></div></div><div class="grid2" style="margin-top:10px"><div class="field"><label>見込みPV</label><input id="fPv" type="number" value="${x?.expectedPV||0}"></div><div class="field"><label>アポ確定</label><select id="fAppt"><option value="0" ${!x?.apptFixed?'selected':''}>未確定</option><option value="1" ${x?.apptFixed?'selected':''}>確定</option></select></div></div><div class="field" style="margin-top:10px"><label>次アクション</label><input id="fAction" value="${x?.nextAction||''}"></div><div class="field" style="margin-top:10px"><label>期限</label><input id="fDue" type="date" value="${x?.nextActionDue||''}"></div><div class="field" style="margin-top:10px"><label>メモ</label><textarea id="fNote">${x?.memo||''}</textarea></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='schedule'){
+    const x = editId ? scheduleList(uid).find(v=>v.id===editId) : null;
+    t.textContent = `${user.nick} / 予定`;
+    b.innerHTML = `<div class="field"><label>日付</label><input id="fDate" type="date" value="${x?.date||todayStr()}"></div><div class="field" style="margin-top:10px"><label>時間</label><input id="fTime" value="${x?.time||''}" placeholder="例：20:00"></div><div class="field" style="margin-top:10px"><label>予定名</label><input id="fTitle" value="${x?.title||''}"></div><div class="field" style="margin-top:10px"><label>メモ</label><textarea id="fNote">${x?.note||''}</textarea></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='shift'){
+    const x = editId ? shiftList(uid).find(v=>v.id===editId) : null;
+    t.textContent = `${user.nick} / 勤務`;
+    b.innerHTML = `<div class="field"><label>開始日</label><input id="fDateStart" type="date" value="${x?.dateStart||x?.date||todayStr()}"></div><div class="field" style="margin-top:10px"><label>終了日</label><input id="fDateEnd" type="date" value="${x?.dateEnd||x?.date||todayStr()}"></div><div class="field" style="margin-top:10px"><label>勤務</label><select id="fType">${['日勤','遅番','夜勤','午前勤務','午後勤務','休み'].map(v=>`<option ${x?.type===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='todo'){
+    const x = editId ? todoList(uid).find(v=>v.id===editId) : null;
+    const opts = todoTemplates(uid).map(v=>`<option value="${v}">${v}</option>`).join('');
+    t.textContent = `${user.nick} / TODO`;
+    b.innerHTML = `${opts?`<div class="field"><label>テンプレ呼び出し</label><select id="fTpl" onchange="document.getElementById('fTitle').value=this.value"><option value="">選択してください</option>${opts}</select></div>`:''}<div class="field" style="margin-top:10px"><label>タイトル</label><input id="fTitle" value="${x?.title||''}"></div><div class="field" style="margin-top:10px"><label>期限</label><input id="fDue" type="date" value="${x?.due||todayStr()}"></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='meeting'){
+    const x = editId ? meetingList(uid).find(v=>v.id===editId) : null;
+    t.textContent = `${user.nick} / 打合せ`;
+    b.innerHTML = `<div class="field"><label>日付</label><input id="fDate" type="date" value="${x?.date||todayStr()}"></div><div class="field" style="margin-top:10px"><label>メモ</label><textarea id="fNote">${x?.note||''}</textarea></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='weekview'){
+    t.textContent = `みんなのスケジュール`;
+    const base = modalMode.weekDate || todayStr();
+    b.innerHTML = `<div class="row-actions" style="margin-bottom:12px"><button class="btn2" onclick="changeWeekModal(-1)">← 前週</button><button class="btn2" onclick="modalMode.weekDate=todayStr(); openModal('weekview');">今週</button><button class="btn2" onclick="changeWeekModal(1)">次週 →</button></div>${weekRowsHtml(base)}`;
+  } else if(mode==='commonschedule'){
+    const x = editId ? commonSchedules().find(v=>v.id===editId) : null;
+    t.textContent = editId ? '共通スケジュール編集' : '共通スケジュール追加';
+    b.innerHTML = `<div class="field"><label>日付</label><input id="fDate" type="date" value="${x?.date||todayStr()}"></div><div class="field" style="margin-top:10px"><label>時間</label><input id="fTime" value="${x?.time||''}"></div><div class="field" style="margin-top:10px"><label>タイトル</label><input id="fTitle" value="${x?.title||''}"></div><div class="field" style="margin-top:10px"><label>メモ</label><textarea id="fNote">${x?.note||''}</textarea></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='member'){
+    const x = uid ? userById(uid) : null;
+    t.textContent = uid ? `${x.nick} / メンバー編集` : 'メンバー追加';
+    b.innerHTML = `${uid?'':`<div class="field"><label>ID</label><input id="fId"></div>`}<div class="field" style="margin-top:10px"><label>表示名</label><input id="fNick" value="${x?.nick||''}"></div><div class="field" style="margin-top:10px"><label>PIN</label><input id="fPin" value="${x?.pin||''}"></div><div class="field" style="margin-top:10px"><label>親メンバー</label><select id="fParent"><option value="">なし</option>${S.users.filter(u=>u.role!=='leader'||!uid).map(u=>`<option value="${u.id}" ${(x?.parentId||'')===u.id?'selected':''}>${u.nick}</option>`).join('')}</select></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  } else if(mode==='password'){
+    t.textContent = `${user.nick} / パスワード変更`;
+    b.innerHTML = `<div class="field"><label>現在のPIN</label><input id="fCurrentPin" type="password" inputmode="numeric" maxlength="4"></div><div class="field" style="margin-top:10px"><label>新しいPIN</label><input id="fNewPin" type="password" inputmode="numeric" maxlength="4"></div><div class="field" style="margin-top:10px"><label>新しいPIN(確認)</label><input id="fNewPin2" type="password" inputmode="numeric" maxlength="4"></div><div class="small" style="margin-top:8px">4桁の数字で変更</div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">変更する</button></div>`;
+  } else if(mode==='actualpv'){
+    const x = userById(uid);
+    t.textContent = `${x.nick} / 実績PV更新`;
+    b.innerHTML = `<div class="field"><label>実績PV</label><input id="fPv" type="number" value="${x.actualAwardPV||0}"></div><div class="footer-actions" style="margin-top:14px"><button class="btn" onclick="saveModal()">保存</button></div>`;
+  }
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); modalMode=null; }
+function openPasswordChange(){ if(!S.loggedIn) return; openModal('password', S.loggedIn); }
+function pickGroupName(name){ const el=document.getElementById('fName'); if(el) el.value=name; }
+function recalcPvTotal(){ const cons=Number(document.getElementById('fConsPv')?.value||0), large=Number(document.getElementById('fLargePv')?.value||0); const total=document.getElementById('fPv'); if(total) total.value=cons+large; }
+function pickLargeProduct(name,pv){ const nameEl=document.getElementById('fLargeProduct'); const pvEl=document.getElementById('fLargePv'); if(nameEl) nameEl.value=name; if(pvEl) pvEl.value=pv; recalcPvTotal(); }
+function changeWeekModal(delta){ modalMode.weekDate=addDays(startOfWeek(new Date(modalMode.weekDate||todayStr())), delta*7).toISOString().slice(0,10); openModal('weekview'); }
+
+function saveModal(){
+  const m=modalMode; if(!m) return;
+  const uid=m.uid, listId=m.editId;
+  if(m.mode==='goal'){
+    const u=userById(uid); u.goalTotalPV=Number(document.getElementById('fGoalTotal').value||0); u.goalConsumablePV=Number(document.getElementById('fGoalCons').value||0); u.goalFrontUp=Number(document.getElementById('fGoalFrontUp').value||0); u.actualFrontUp=Number(document.getElementById('fActualFrontUp').value||0); u.goalGroupUp=Number(document.getElementById('fGoalGroupUp').value||0); u.goalMemberUp=u.goalFrontUp; u.actualMemberUp=u.actualFrontUp; touch(uid,'pv');
+  }
+  if(m.mode==='pvmanual'){
+    const arr=pvManual(uid); const consumablePV=Number(document.getElementById('fConsPv').value||0), largePV=Number(document.getElementById('fLargePv').value||0); const fallbackName=(userById(uid)?.nick)||losName(uid)||uid||''; const nameInput=document.getElementById('fName'); const obj={id:listId||'p'+Date.now(),name:((nameInput?.value||'').trim()||fallbackName),due:document.getElementById('fDue').value,action:document.getElementById('fAction').value.trim(),consumablePV,largePV,largeProduct:document.getElementById('fLargeProduct').value.trim(),targetPV:consumablePV+largePV,note:document.getElementById('fNote').value.trim()}; const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj); touch(uid,'pv');
+  }
+  if(m.mode==='prospect'){
+    const arr=prospectList(uid); const obj={id:listId||'r'+Date.now(),name:document.getElementById('fName').value.trim(),grade:document.getElementById('fGrade').value,category:document.getElementById('fCat').value,expectedPV:Number(document.getElementById('fPv').value||0),apptFixed:document.getElementById('fAppt').value==='1',nextAction:document.getElementById('fAction').value.trim(),nextActionDue:document.getElementById('fDue').value,memo:document.getElementById('fNote').value.trim()}; if(!obj.name) return alert('名前を入れてください'); const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj); touch(uid,'prospect');
+  }
+  if(m.mode==='schedule'){
+    const arr=scheduleList(uid); const obj={id:listId||'s'+Date.now(),date:document.getElementById('fDate').value,time:document.getElementById('fTime').value.trim(),title:document.getElementById('fTitle').value.trim(),note:document.getElementById('fNote').value.trim()}; if(!obj.title) return alert('予定名を入れてください'); const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj); touch(uid,'schedule');
+  }
+  if(m.mode==='shift'){
+    const arr=shiftList(uid); const start=document.getElementById('fDateStart').value, end=document.getElementById('fDateEnd').value||start; if(!start) return alert('開始日を入れてください'); const obj={id:listId||'w'+Date.now(),dateStart:start,dateEnd:end,type:document.getElementById('fType').value,date:start}; const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj); touch(uid,'schedule');
+  }
+  if(m.mode==='todo'){
+    const arr=todoList(uid); const title=document.getElementById('fTitle').value.trim(); const obj={id:listId||'t'+Date.now(),title,due:document.getElementById('fDue').value,status:'todo'}; if(!obj.title) return alert('タイトルを入れてください'); addTodoTemplate(uid,title); const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]={...arr[i],...obj}; else arr.unshift(obj); touch(uid,'todo');
+  }
+  if(m.mode==='meeting'){
+    const arr=meetingList(uid); const obj={id:listId||'m'+Date.now(),date:document.getElementById('fDate').value,note:document.getElementById('fNote').value.trim()}; const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj); touch(uid,'meeting'); ensureMeetingSchedule(uid,obj);
+  }
+  if(m.mode==='commonschedule'){
+    const arr=commonSchedules(); const obj={id:listId||'cs'+Date.now(),date:document.getElementById('fDate').value,time:document.getElementById('fTime').value.trim(),title:document.getElementById('fTitle').value.trim(),note:document.getElementById('fNote').value.trim()}; if(!obj.title) return alert('タイトルを入れてください'); const i=arr.findIndex(x=>x.id===obj.id); if(i>-1) arr[i]=obj; else arr.unshift(obj);
+  }
+  if(m.mode==='member'){
+    const nick=document.getElementById('fNick').value.trim(), pin=document.getElementById('fPin').value.trim(), parentId=document.getElementById('fParent').value||null; if(!nick||!pin) return alert('名前とPINを入れてください');
+    if(uid){ const u=userById(uid); u.nick=nick; u.pin=pin; u.parentId=parentId; }
+    else { const id=document.getElementById('fId').value.trim(); if(!id) return alert('IDを入れてください'); if(userById(id)) return alert('IDが重複しています'); S.users.push({id,nick,pin,role:'member',parentId,actualAwardPV:0,goalTotalPV:0,goalConsumablePV:0,goalFrontUp:0,goalGroupUp:0,actualFrontUp:0,actualMemberUp:0}); normalizeState(S); }
+    save();
+  }
+  if(m.mode==='password'){
+    const u=userById(uid);
+    const current=document.getElementById('fCurrentPin').value.trim();
+    const next=document.getElementById('fNewPin').value.trim();
+    const next2=document.getElementById('fNewPin2').value.trim();
+    if(String(u.pin)!==current) return alert('現在のPINが違います');
+    if(!/^\d{4}$/.test(next)) return alert('新しいPINは4桁の数字で入力してください');
+    if(next!==next2) return alert('確認用PINが一致しません');
+    u.pin=next;
+  }
+  if(m.mode==='actualpv'){
+    userById(uid).actualAwardPV = Number(document.getElementById('fPv').value||0); S.actualPVImportedAt = nowIso(); touch(uid,'pv');
+  }
+  save(); closeModal(); renderApp();
+}
+
+window.exportData=exportData; window.importData=importData; window.importProspectExcel=importProspectExcel; window.resetAllActivityData=resetAllActivityData;
+window.selectLogin=selectLogin; window.pinKey=pinKey; window.logout=logout; window.switchTab=switchTab; window.openMemberPage=openMemberPage; window.openTargetTab=openTargetTab; window.goBack=goBack;
+window.openModal=openModal; window.closeModal=closeModal; window.saveModal=saveModal; window.deletePvManual=deletePvManual; window.deleteProspect=deleteProspect; window.deleteSchedule=deleteSchedule; window.deleteShift=deleteShift; window.toggleTodo=toggleTodo; window.deleteTodo=deleteTodo; window.quickMeeting=quickMeeting; window.deleteMeeting=deleteMeeting; window.deleteMember=deleteMember; window.deleteCommonSchedule=deleteCommonSchedule; window.importExcel=importExcel; window.changeWeek=changeWeek; window.pickGroupName=pickGroupName; window.pickLargeProduct=pickLargeProduct; window.recalcPvTotal=recalcPvTotal; window.changeWeekModal=changeWeekModal;
+
+function boot(){
+  renderLogin();
+  if(S.loggedIn && userById(S.loggedIn)) openApp();
+}
+boot();
+</script>
+</body>
+</html>
