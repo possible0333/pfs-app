@@ -229,7 +229,20 @@ let pvTreeOpen = {};
 function save(){ saveState(S); }
 function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 function nowIso(){ return new Date().toISOString(); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function localDateStr(d=new Date()){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function parseDateLocal(v){
+  if(!v) return null;
+  if(v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+  const s = String(v).slice(0,10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+  const d = new Date(v);
+  if(Number.isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function dateToLocalStr(v){ const d=parseDateLocal(v); return d ? localDateStr(d) : ''; }
+function todayStr(){ return localDateStr(); }
 function fmt(n){ return Number(n||0).toLocaleString('ja-JP'); }
 function userById(id){ return S.users.find(u=>u.id===id); }
 function me(){ return userById(S.loggedIn); }
@@ -272,16 +285,18 @@ function canViewPvTarget(id){ if(isAdmin()) return true; if(S.loggedIn===id) ret
 function currentSubject(){ return userById(focusUserId || S.loggedIn); }
 function touch(userId, area){ S.updates[userId] ||= {}; S.updates[userId][area] = nowIso(); save(); }
 function lastUpdate(userId, area){ return (S.updates[userId]||{})[area] || ''; }
-function isToday(val){ return !!val && val.slice(0,10) === todayStr(); }
+function isToday(val){ return !!val && dateToLocalStr(val) === todayStr(); }
 function agoText(val){
   if(!val) return '未更新';
-  const diff = Date.now() - new Date(val).getTime();
+  const d = new Date(val);
+  if(Number.isNaN(d.getTime())) return '未更新';
+  const diff = Date.now() - d.getTime();
   const min = Math.floor(diff/60000), hr = Math.floor(diff/3600000), day=Math.floor(diff/86400000);
   if(min < 60) return `${Math.max(1,min)}分前`;
   if(hr < 24) return `${hr}時間前`;
   return `${day}日前`;
 }
-function daysSince(val){ if(!val) return 999; const diff=Date.now()-new Date(val).getTime(); return Math.floor(diff/86400000); }
+function daysSince(val){ const d=parseDateLocal(val); if(!d) return 999; const diff=parseDateLocal(todayStr()).getTime()-d.getTime(); return Math.floor(diff/86400000); }
 function updateTone(val){ const d=daysSince(val); if(d>=7) return 'bad'; if(d>=3) return 'warn'; return ''; }
 function dateJp(d){ return d ? d.replace(/-/g,'/') : '未設定'; }
 
@@ -721,7 +736,7 @@ function renderProspectItem(uid,p){
 
 function deletePvManual(uid,id){ if(!confirm('削除する？')) return; S.pvManual[uid]=pvManual(uid).filter(x=>x.id!==id); touch(uid,'pv'); renderApp(); }
 function toggleTodo(uid,id,status){ return setTodoStatus(uid,id,status); }
-function changeWeek(delta){ const d = new Date(weekBaseDate || todayStr()); weekBaseDate = addDays(startOfWeek(d), delta*7).toISOString().slice(0,10); renderApp(); }
+function changeWeek(delta){ const d = parseDateLocal(weekBaseDate || todayStr()) || new Date(); weekBaseDate = localDateStr(addDays(startOfWeek(d), delta*7)); renderApp(); }
 function deleteProspect(uid,id){ if(!confirm('削除する？')) return; S.prospects[uid] = prospectList(uid).filter(x=>x.id!==id); touch(uid,'prospect'); renderApp(); }
 
 function actualPv(uid){
@@ -737,10 +752,10 @@ function syncActualPv(uid, pv){
   const row = losRow(uid);
   if(row) row.actualPV = num;
 }
-function ymLabel(dateStr){ const d=new Date(dateStr); return `${d.getFullYear()}年${d.getMonth()+1}月`; }
-function monthStart(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth(), 1); }
-function monthEnd(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth()+1, 0); }
-function addMonths(dateStr, delta){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth()+delta, 1).toISOString().slice(0,10); }
+function ymLabel(dateStr){ const d=parseDateLocal(dateStr) || new Date(); return `${d.getFullYear()}年${d.getMonth()+1}月`;  }
+function monthStart(dateStr){ const d=parseDateLocal(dateStr) || new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
+function monthEnd(dateStr){ const d=parseDateLocal(dateStr) || new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+function addMonths(dateStr, delta){ const d=parseDateLocal(dateStr) || new Date(); return localDateStr(new Date(d.getFullYear(), d.getMonth()+delta, 1)); }
 function dateInRange(dateStr,start,end){ if(!dateStr||!start) return false; return dateStr>=start && dateStr<=(end||start); }
 function scheduleItemsOnDate(uid,dateStr){
   const items=[];
@@ -749,7 +764,7 @@ function scheduleItemsOnDate(uid,dateStr){
   commonSchedules().filter(x=>x.date===dateStr).forEach(x=>items.push({...x,kind:'common'}));
   return items.sort((a,b)=> String(a.time||'').localeCompare(String(b.time||'')));
 }
-function changeScheduleMonth(delta){ scheduleMonthBase = addMonths(scheduleMonthBase || todayStr(), delta); const start=monthStart(scheduleMonthBase); const end=monthEnd(scheduleMonthBase); if(selectedScheduleDate < start.toISOString().slice(0,10) || selectedScheduleDate > end.toISOString().slice(0,10)) selectedScheduleDate = start.toISOString().slice(0,10); renderApp(); }
+function changeScheduleMonth(delta){ scheduleMonthBase = addMonths(scheduleMonthBase || todayStr(), delta); const start=monthStart(scheduleMonthBase); const end=monthEnd(scheduleMonthBase); if(selectedScheduleDate < localDateStr(start) || selectedScheduleDate > localDateStr(end)) selectedScheduleDate = localDateStr(start); renderApp(); }
 function pickScheduleDate(dateStr){ selectedScheduleDate = dateStr; renderApp(); }
 function renderScheduleCalendar(uid){
   const base = scheduleMonthBase || todayStr();
@@ -757,7 +772,7 @@ function renderScheduleCalendar(uid){
   const gridStart = startOfWeek(start);
   const cells=[];
   for(let i=0;i<42;i++){
-    const d = addDays(gridStart,i); const ds = d.toISOString().slice(0,10); const inMonth = d.getMonth()===start.getMonth();
+    const d = addDays(gridStart,i); const ds = localDateStr(d); const inMonth = d.getMonth()===start.getMonth();
     const items = inMonth ? scheduleItemsOnDate(uid, ds) : [];
     const itemHtml = items.slice(0,2).map(it=>{
       const cls = it.kind==='common' ? 'common' : it.kind==='shift' ? 'shift' : (it.deadline?'deadline':'');
@@ -799,14 +814,14 @@ function renderSchedule(){
 function deleteSchedule(uid,id){ if(!confirm('削除する？')) return; S.schedules[uid]=scheduleList(uid).filter(x=>x.id!==id); touch(uid,'schedule'); renderApp(); }
 function deleteShift(uid,id){ if(!confirm('削除する？')) return; S.shifts[uid]=shiftList(uid).filter(x=>x.id!==id); touch(uid,'schedule'); renderApp(); }
 
-function startOfWeek(d=new Date()){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
+function startOfWeek(d=new Date()){ const base = parseDateLocal(d) || new Date(d); const x=new Date(base); const day=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 function expandShiftDates(s){
   const start = s.dateStart || s.date || '';
   const end = s.dateEnd || s.date || start;
   const out=[]; if(!start) return out;
   let cur=new Date(start+'T00:00:00'); const last=new Date(end+'T00:00:00');
-  while(cur<=last){ out.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
+  while(cur<=last){ out.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
   return out;
 }
 function weekRowsHtml(baseDate){
@@ -814,7 +829,7 @@ function weekRowsHtml(baseDate){
   const headers = Array.from({length:7}, (_,i)=>{ const d=addDays(start,i); return `<div class="hd">${['月','火','水','木','金','土','日'][i]}<br>${d.toISOString().slice(5,10)}</div>`; }).join('');
   const rows = users.map(u=>{
     const cells = Array.from({length:7}, (_,i)=>{
-      const ds = addDays(start,i).toISOString().slice(0,10);
+      const ds = localDateStr(addDays(start,i));
       const shifts = shiftList(u.id).filter(x=>expandShiftDates(x).includes(ds)).map(x=>x.type).join(' / ');
       const evts = scheduleList(u.id).filter(x=>x.date===ds).map(x=>`${x.time?x.time+' ':''}${x.title}`).join('<br>');
       const commons = commonSchedules().filter(x=>x.date===ds).map(x=>`★ ${x.time?x.time+' ':''}${x.title}`).join('<br>');
@@ -1077,7 +1092,7 @@ function exportData(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const d = new Date().toISOString().slice(0,10);
+  const d = todayStr();
   a.download = `pfs_backup_${d}.json`;
   a.click();
   URL.revokeObjectURL(url);
@@ -1386,7 +1401,7 @@ function openPasswordChange(){ if(!S.loggedIn) return; openModal('password', S.l
 function pickGroupName(name){ const el=document.getElementById('fName'); if(el) el.value=name; }
 function recalcPvTotal(){ const cons=Number(document.getElementById('fConsPv')?.value||0), large=Number(document.getElementById('fLargePv')?.value||0); const total=document.getElementById('fPv'); if(total) total.value=cons+large; }
 function pickLargeProduct(name,pv){ const nameEl=document.getElementById('fLargeProduct'); const pvEl=document.getElementById('fLargePv'); if(nameEl) nameEl.value=name; if(pvEl) pvEl.value=pv; recalcPvTotal(); }
-function changeWeekModal(delta){ modalMode.weekDate=addDays(startOfWeek(new Date(modalMode.weekDate||todayStr())), delta*7).toISOString().slice(0,10); openModal('weekview'); }
+function changeWeekModal(delta){ modalMode.weekDate=localDateStr(addDays(startOfWeek(parseDateLocal(modalMode.weekDate||todayStr())), delta*7)); openModal('weekview'); }
 
 function saveModal(){
   const m=modalMode; if(!m) return;
