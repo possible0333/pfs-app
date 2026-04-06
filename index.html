@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PFS Manager v34</title>
+<title>PFS Manager v35</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -73,7 +73,7 @@ button{cursor:pointer;border:none}
 <div class="shell">
   <section id="loginScreen" class="screen active">
     <div class="login-wrap">
-      <div class="hero"><h1>PFS Manager v34</h1></div>
+      <div class="hero"><h1>PFS Manager v35</h1></div>
       <div class="login-card">
         <div class="sec-title">メンバーを選択</div>
         <div id="memberGrid" class="member-grid"></div>
@@ -108,7 +108,7 @@ button{cursor:pointer;border:none}
 <div id="modal" class="modal"><div class="modal-box"><div class="modal-title"><span id="modalTitle"></span><button class="closex" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
 
 <script>
-const STORAGE_KEY = 'pfs_manager_v34_data';
+const STORAGE_KEY = 'pfs_manager_v35_data';
 const INITIAL_USERS = [
   // 202604 LOSをもとに、ツール利用メンバーだけ見える形に圧縮した配下関係
   ['shintaro','慎太郎','0000','leader',null],
@@ -193,12 +193,14 @@ function normalizeState(s){
   s.users = (s.users||[]).map(u=>({actualAwardPV:0,goalTotalPV:0,goalConsumablePV:0,goalFrontUp:0,goalGroupUp:0,actualFrontUp:0,actualMemberUp:0,...u}));
   s.users = s.users.map(u => {
     const row = LOS_MAP[String(u.id)];
-    // [Fix v32] parentIdはCSVのsponsorIdで上書きせず、アプリ内の関係（u.parentId）を維持する
-    // CSVのsponsorIdにはアプリ未登録の中間ユーザーが含まれるため、上書きするとユーザーが孤立する
+    // parentIdはアプリ内の関係を維持し、保存済みの実績PVを最優先する
+    // 初期値が未設定のときだけLOSデータを採用する
+    const savedActual = Number(u.actualAwardPV);
+    const hasSavedActual = Number.isFinite(savedActual);
     return {
       ...u,
       parentId: u.parentId || (PARENT_FIX.hasOwnProperty(u.id) ? PARENT_FIX[u.id] : ''),
-      actualAwardPV: row ? Number(row.actualPV||0) : Number(u.actualAwardPV||0)
+      actualAwardPV: hasSavedActual ? savedActual : (row ? Number(row.actualPV||0) : 0)
     };
   });
   for(const u of s.users){
@@ -355,8 +357,10 @@ function projectedOwnPlanPV(uid){
 // [Fix v32] LOSデータがあればその値（グループ全体の合計済みPV）を返し、なければアプリ内の値を使う
 // アプリ未登録のダウンラインPVも含めるため、LOS_ROWSのactualPVを優先参照する
 function groupActualPV(uid){
-  const row = losRow(uid);
-  return row ? Number(row.actualPV || 0) : Number(userById(uid)?.actualAwardPV || 0);
+  return sum(losDescendantsOf(uid), x=>actualPv(String(x.id)));
+}
+function groupActualPVIncludingSelf(uid){
+  return actualPv(uid) + groupActualPV(uid);
 }
 
 // ダウンライン全員の計画PV合計（再帰）
@@ -374,7 +378,7 @@ function linkedDownlineEntries(uid){
   const directKids = S.users.filter(u=>u.parentId===uid);
   const entries = directKids.map(u=>{
     const kidDescendants = [u, ...descendantsOf(u.id)];
-    const totalActual = sum(kidDescendants, x=>Number(x.actualAwardPV||0));
+    const totalActual = sum(kidDescendants, x=>actualPv(String(x.id)));
     const totalPlan   = sum(kidDescendants, x=>projectedOwnPlanPV(x.id));
     const totalCons   = sum(kidDescendants, x=>manualConsumablePV(x.id));
     const totalLarge  = sum(kidDescendants, x=>manualLargePV(x.id));
@@ -401,7 +405,7 @@ function projectedOwnPV(uid){ return projectedOwnPlanPV(uid); }
 function scoreUser(uid){
   const u = userById(uid); let s = 2;
   ['meeting','schedule','pv','prospect','todo'].forEach(a=>{ const d=daysSince(lastUpdate(uid,a)); if(d===0) s += 1.5; else if(d<3) s += 1; else if(d<7) s += 0.4; else s -= 0.3; });
-  const prog = u.goalTotalPV ? Math.min(1, (Number(u.actualAwardPV||0)+projectedTotalPV(u))/Number(u.goalTotalPV||1)) : 0;
+  const prog = u.goalTotalPV ? Math.min(1, (actualPv(u.id)+projectedTotalPV(u))/Number(u.goalTotalPV||1)) : 0;
   s += prog*2.5;
   const grpGoal = Number(u.goalGroupUp||0), frontGoal = Number(u.goalFrontUp||u.goalMemberUp||0);
   const upProg = (frontGoal?Math.min(1,Number(u.actualFrontUp||u.actualMemberUp||0)/frontGoal):0) + (grpGoal?Math.min(1,projectedGroupUp(uid)/grpGoal):0);
@@ -416,7 +420,7 @@ function monthProgressScore(uid){
   const u=userById(uid);
   const goal=Number(u.goalTotalPV||0); if(!goal) return 0;
   const now=new Date(); const day=now.getDate(); const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  const expected=day/dim; const actual=Math.min(1,(Number(u.actualAwardPV||0)+projectedTotalPV(u))/goal);
+  const expected=day/dim; const actual=Math.min(1,(actualPv(uid)+projectedTotalPV(u))/goal);
   const ratio=Math.min(1.25, actual/Math.max(0.08,expected));
   return Math.max(0,Math.min(40, Math.round(40*Math.min(1,ratio))));
 }
@@ -634,7 +638,7 @@ function renderMyGroup(){
   const uid=u.id;
   const fronts=losChildrenOf(uid);
   const all=losDescendantsOf(uid);
-  const totalActual=sum(all,'actualPV');
+  const totalActual=sum(all, r=>actualPv(String(r.id)));
   const totalPlan=sum(all, r=>{ const m=userById(String(r.id)); return m ? projectedOwnPlanPV(m.id) : 0; });
   const urgentCount=all.reduce((a,r)=>{ const m=userById(String(r.id)); if(!m) return a; const c = prospectList(m.id).filter(p=>p.nextActionDue && daysSince(p.nextActionDue)>=0 && daysSince(p.nextActionDue)<=3).length + pvManual(m.id).filter(v=>v.due && daysSince(v.due)>=0 && daysSince(v.due)<=3).length + todoList(m.id).filter(t=>t.status!=='done' && t.due && daysSince(t.due)>=0 && daysSince(t.due)<=3).length; return a+c; },0);
   return `<div class="card"><div class="section-head"><h3>自分のグループ</h3><div class="small">各メンバーの状況を一覧確認</div></div><div class="grid3"><div class="metric"><div class="k">グループ人数</div><div class="v">${all.length}</div></div><div class="metric"><div class="k">実績PV合計</div><div class="v" style="color:#18a164">${fmt(totalActual)}</div></div><div class="metric"><div class="k">計画PV合計</div><div class="v" style="color:#5865f2">${fmt(totalPlan)}</div><div class="s">期限間近 ${urgentCount}件</div></div></div></div><div class="card"><div class="section-head"><h3>グループ一覧</h3><div class="small">フロントを表示 / 全体タップで配下を展開</div></div><div style="margin-top:10px">${fronts.length ? `<div class="list">${fronts.map(r=>renderGroupSummaryCard(uid,r,1)).join('')}</div>` : '<div class="empty">配下メンバーなし</div>'}</div></div>`;
@@ -646,7 +650,7 @@ function renderPv(){
   const mine=sortByDue(pvManual(uid));
   const losDesc = losDescendantsOf(uid);
   const myLosRow = losRow(uid);
-  const grpActualPV = myLosRow ? Number(myLosRow.actualPV||0) : Number(u.actualAwardPV||0);
+  const grpActualPV = groupActualPVIncludingSelf(uid);
   const grpPlanPV = projectedOwnPlanPV(uid) + sum(losDesc, x=>manualTotalPV(String(x.id)) + projectedProspectPV(String(x.id),false) + projectedProspectPV(String(x.id),true));
   const remain = pvRemaining(uid);
   const goal = Number(u.goalTotalPV)||0;
@@ -658,7 +662,7 @@ function renderPv(){
     <div class="section-head"><h3>今月の目標と見通し</h3><button class="btn2" onclick="openModal('goal','${uid}')">目標入力</button></div>
     <div class="grid3">
       <div class="metric"><div class="k">目標PV</div><div class="v">${fmt(goal)}</div></div>
-      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(u.actualAwardPV)}</div></div>
+      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(actualPv(uid))}</div></div>
       <div class="metric"><div class="k">残PV</div><div class="v" style="color:${barColor}">${fmt(remain)}</div><div class="s">1日あたり ${fmt(perDayNeed(uid))}PV</div></div>
     </div>
     <div style="margin-top:10px;background:#eef2ff;border-radius:8px;height:10px;overflow:hidden"><div style="height:100%;border-radius:8px;background:${barColor};width:${pct}%"></div></div>
@@ -667,7 +671,7 @@ function renderPv(){
   <div class="card">
     <div class="section-head"><h3>自分のPV内訳</h3><button class="btn2" onclick="openModal('actualpv','${uid}')">実績更新</button></div>
     <div class="grid3">
-      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(u.actualAwardPV)}</div></div>
+      <div class="metric"><div class="k">実績PV</div><div class="v" style="color:#18a164">${fmt(actualPv(uid))}</div></div>
       <div class="metric"><div class="k">計画PV</div><div class="v" style="color:#5865f2">${fmt(manualTotalPV(uid))}</div><div class="s">消耗品 ${fmt(manualConsumablePV(uid))} / 大型 ${fmt(manualLargePV(uid))}</div></div>
       <div class="metric"><div class="k">プロスペ見込み</div><div class="v" style="color:#d97706">${fmt(myProspPV)}</div><div class="s">${prospectList(uid).filter(p=>p.grade!=='D').length}人</div></div>
     </div>
@@ -720,6 +724,19 @@ function toggleTodo(uid,id,status){ return setTodoStatus(uid,id,status); }
 function changeWeek(delta){ const d = new Date(weekBaseDate || todayStr()); weekBaseDate = addDays(startOfWeek(d), delta*7).toISOString().slice(0,10); renderApp(); }
 function deleteProspect(uid,id){ if(!confirm('削除する？')) return; S.prospects[uid] = prospectList(uid).filter(x=>x.id!==id); touch(uid,'prospect'); renderApp(); }
 
+function actualPv(uid){
+  const app = userById(String(uid));
+  if(app) return Number(app.actualAwardPV||0);
+  const row = losRow(uid);
+  return Number(row?.actualPV||0);
+}
+function syncActualPv(uid, pv){
+  const num = Number(pv||0);
+  const app = userById(String(uid));
+  if(app) app.actualAwardPV = num;
+  const row = losRow(uid);
+  if(row) row.actualPV = num;
+}
 function ymLabel(dateStr){ const d=new Date(dateStr); return `${d.getFullYear()}年${d.getMonth()+1}月`; }
 function monthStart(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth(), 1); }
 function monthEnd(dateStr){ const d=new Date(dateStr); return new Date(d.getFullYear(), d.getMonth()+1, 0); }
@@ -853,7 +870,7 @@ function renderLosTree(rootId){
   const selfUser = userById(String(rootId));
   const selfPlan = selfUser ? projectedOwnPlanPV(selfUser.id) : 0;
   const selfGoal = selfUser ? Number(selfUser.goalTotalPV||0) : 0;
-  const selfActual = selfUser ? Number(selfUser.actualAwardPV||0) : 0;
+  const selfActual = actualPv(rootId);
   const selfCard = `
     <div class="item tree-card" style="margin-bottom:10px">
       <div class="item-top">
@@ -889,7 +906,7 @@ function renderLosTreeNode(rootId,row,depth){
       <div class="item-top">
         <div>
           ${nameTap}
-          <div class="item-sub">スポンサー ${sponsor} / 実績 ${fmt(row.actualPV||0)}PV / 計画 ${fmt(planPV)}PV ${goalPV?`/ 目標 ${fmt(goalPV)}PV`:''}</div>
+          <div class="item-sub">スポンサー ${sponsor} / 実績 ${fmt(actualPv(targetUid))}PV / 計画 ${fmt(planPV)}PV ${goalPV?`/ 目標 ${fmt(goalPV)}PV`:''}</div>
           <div class="small">${escapeHtml(pathText)}</div>
         </div>
         <div class="row-actions">${chevron}${editBtn}${detail}</div>
@@ -933,7 +950,7 @@ function categoryAlertSummary(uid){
 function alertBadgeText(txt){ return txt?`<span class="badge bad">${txt}</span>`:`<span class="badge ok">OK</span>`; }
 function renderAdminAlerts(){
   const members=S.users.filter(x=>x.role!=='leader');
-  return `<div class="card"><div class="section-head"><h3>メンバー別アラート</h3><div class="small">各カテゴリを一発チェック</div></div><div class="list">${members.map(u=>{ const a=categoryAlertSummary(u.id); return `<div class="item"><div class="item-top"><div><div class="item-name">${u.nick}</div><div class="item-sub">100点評価 ${hundredScore(u.id)}点 / 実績 ${fmt(u.actualAwardPV)}PV</div></div><button class="btn2" onclick="openMemberPage('${u.id}')">ページへ</button></div><div class="grid2" style="margin-top:10px"><div class="pv-chip">PV計画 ${alertBadgeText(a.pv)}</div><div class="pv-chip">プロスペ ${alertBadgeText(a.prospect)}</div><div class="pv-chip">打合せ ${alertBadgeText(a.meeting)}</div><div class="pv-chip">スケジュール ${alertBadgeText(a.schedule)}</div><div class="pv-chip">TODO ${alertBadgeText(a.todo)}</div></div></div>`; }).join('')}</div></div>`;
+  return `<div class="card"><div class="section-head"><h3>メンバー別アラート</h3><div class="small">各カテゴリを一発チェック</div></div><div class="list">${members.map(u=>{ const a=categoryAlertSummary(u.id); return `<div class="item"><div class="item-top"><div><div class="item-name">${u.nick}</div><div class="item-sub">100点評価 ${hundredScore(u.id)}点 / 実績 ${fmt(actualPv(u.id))}PV</div></div><button class="btn2" onclick="openMemberPage('${u.id}')">ページへ</button></div><div class="grid2" style="margin-top:10px"><div class="pv-chip">PV計画 ${alertBadgeText(a.pv)}</div><div class="pv-chip">プロスペ ${alertBadgeText(a.prospect)}</div><div class="pv-chip">打合せ ${alertBadgeText(a.meeting)}</div><div class="pv-chip">スケジュール ${alertBadgeText(a.schedule)}</div><div class="pv-chip">TODO ${alertBadgeText(a.todo)}</div></div></div>`; }).join('')}</div></div>`;
 }
 function renderCommonScheduleAdmin(){
   const list=sortByDue(commonSchedules());
@@ -951,7 +968,7 @@ function renderPvAdmin(){
   const rootUser = userById(rootId);
   const rootLosRow = losRow(rootId);
   const allDesc = descendantsOf(rootId);
-  const totalActual = rootLosRow ? Number(rootLosRow.actualPV||0) : Number(rootUser?.actualAwardPV||0);
+  const totalActual = groupActualPVIncludingSelf(rootId);
   const totalPlan = projectedOwnPlanPV(rootId) + sum(allDesc, u=>projectedOwnPlanPV(u.id));
   return `
   <div class="card">
@@ -967,7 +984,7 @@ function renderPvAdmin(){
     <div class="muted">Excelインポートか手入力で実績PVを更新。</div>
     <div class="row-actions" style="margin-top:12px">
       <input id="excelInput" type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" style="display:none">
-      <button class="btn2" onclick="document.getElementById('excelInput').click()">Excelを選択</button>
+      <button class="btn2" onclick="document.getElementById('excelInput').click()">Excel / CSVを選択</button>
     </div>
     <div class="small" style="margin-top:8px">最終インポート: ${S.actualPVImportedAt?agoText(S.actualPVImportedAt):'未実施'}</div>
   </div>
@@ -976,9 +993,9 @@ function renderPvAdmin(){
     <div class="list" style="margin-top:10px">
       ${members.map(u=>{
         const myPlan = projectedOwnPlanPV(u.id);
-        const myActual = Number(u.actualAwardPV||0);
+        const myActual = actualPv(u.id);
         const uLosRow = losRow(u.id);
-        const grpActual = uLosRow ? Number(uLosRow.actualPV||0) : myActual;
+        const grpActual = groupActualPVIncludingSelf(u.id);
         const grpPlan = groupPlanPV(u.id);
         const myProsp = projectedProspectPV(u.id,false)+projectedProspectPV(u.id,true);
         const totalPV = grpActual + grpPlan;
@@ -1038,8 +1055,8 @@ function renderDataIO(){
     <div style="background:#fff4df;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#7a4a00">
       📋 Excelの列順: スポンサー / プロスぺ名前 / 次アポ(期限) / アポ確定 / 何をする / 進捗 / 情報
     </div>
-    <input type="file" id="prospExcelInput" accept=".xlsx,.xls" style="display:none" onchange="importProspectExcel(event)">
-    <button class="btn2" onclick="document.getElementById('prospExcelInput').click()">📂 Excelを選択</button>
+    <input type="file" id="prospExcelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importProspectExcel(event)">
+    <button class="btn2" onclick="document.getElementById('prospExcelInput').click()">📂 Excel / CSVを選択</button>
     <div id="prospImportStatus" class="small" style="margin-top:8px"></div>
   </div>
 
@@ -1215,69 +1232,92 @@ function resetAllActivityData(){
 function importExcel(ev){
   const file = ev.target.files && ev.target.files[0];
   if(!file) return;
-  if(typeof XLSX === 'undefined'){
-    alert('Excelライブラリが読み込めていません。手動更新を使ってください。');
+  if(typeof XLSX === 'undefined'){ alert('Excelライブラリが読み込めていません。手動更新を使ってください。'); return; }
+
+  const normalizeName = (v) => String(v||'').replace(/\s+/g,'').replace(/[・･]/g,'').trim();
+  const normalizeId = (v) => String(v||'').replace(/[^0-9]/g,'').trim();
+  const parsePv = (v) => {
+    const s = String(v ?? '').replace(/,/g,'').trim();
+    if(!s) return NaN;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  };
+
+  const applyRows = (rows) => {
+    if(!rows.length) throw new Error('empty');
+    const maxScan = Math.min(rows.length, 10);
+    let headerRowIndex = -1;
+    let aboIdx = -1, nameIdx = -1, pvIdx = -1;
+
+    for(let i=0;i<maxScan;i++){
+      const header = (rows[i]||[]).map(x=>String(x||'').trim());
+      const idxAbo = header.findIndex(h=>/^(ABO番号|ABO No|ABO)$/i.test(h));
+      const idxName = header.findIndex(h=>/^(名前|氏名|Name)$/i.test(h));
+      const idxPv = header.findIndex(h=>/(アワードPV|Award PV|PV)/i.test(h));
+      if(idxName>=0 && idxPv>=0){
+        headerRowIndex = i;
+        aboIdx = idxAbo;
+        nameIdx = idxName;
+        pvIdx = idxPv;
+        break;
+      }
+    }
+    if(headerRowIndex < 0 || nameIdx < 0 || pvIdx < 0) throw new Error('columns');
+
+    let matched = 0;
+    for(const r of rows.slice(headerRowIndex+1)){
+      if(!r || !r.length) continue;
+      const aboNo = aboIdx>=0 ? normalizeId(r[aboIdx]) : '';
+      const rawName = String(r[nameIdx]||'').trim();
+      const name = normalizeName(rawName);
+      const pv = parsePv(r[pvIdx]);
+      if((!aboNo && !name) || !Number.isFinite(pv)) continue;
+
+      let hit = null;
+      if(aboNo) hit = userById(aboNo) || S.users.find(u=>normalizeId(u.id)===aboNo);
+      if(!hit && name) hit = S.users.find(u=>normalizeName(u.nick)===name);
+      if(hit){
+        syncActualPv(hit.id, pv);
+        matched++;
+      }else if(aboNo && LOS_MAP[aboNo]){
+        syncActualPv(aboNo, pv);
+        matched++;
+      }
+    }
+    S.actualPVImportedAt = nowIso();
+    save();
+    renderApp();
+    alert(`インポート完了（${matched}件更新）`);
+  };
+
+  const lowerName = String(file.name||'').toLowerCase();
+  if(lowerName.endsWith('.csv')){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        const wb = XLSX.read(String(e.target.result||''), {type:'string'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        applyRows(rows);
+      }catch(err){
+        console.error(err);
+        alert('CSVインポートに失敗しました。列名に「ABO番号」「名前」「アワードPV」があるか確認してください。');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
     return;
   }
+
   const reader = new FileReader();
   reader.onload = function(e){
     try{
       const wb = XLSX.read(e.target.result, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws,{header:1, defval:''});
-      if(!rows.length) throw new Error('empty');
-
-      let headerRow = -1;
-      for(let i=0;i<Math.min(rows.length,15);i++){
-        const header = rows[i].map(x=>String(x||'').trim());
-        const hasName = header.some(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
-        const hasPv = header.some(h=>/アワードPV|award\s*pv|組織PV合計|PV/i.test(h));
-        if(hasName && hasPv){
-          headerRow = i;
-          break;
-        }
-      }
-      if(headerRow < 0) throw new Error('columns');
-
-      const header = rows[headerRow].map(x=>String(x||'').trim());
-      const nameIdx = header.findIndex(h=>/^(名前|氏名|Name)$/i.test(h) || /名前|氏名/i.test(h));
-      let pvIdx = header.findIndex(h=>/アワードPV/i.test(h));
-      if(pvIdx < 0) pvIdx = header.findIndex(h=>/組織PV合計/i.test(h));
-      if(pvIdx < 0) pvIdx = header.findIndex(h=>/PV/i.test(h));
-      const idIdx = header.findIndex(h=>/^(ABO番号|ID)$/i.test(h) || /ABO番号/i.test(h));
-      if(nameIdx < 0 || pvIdx < 0) throw new Error('columns');
-
-      let updated = 0;
-      const normalize = s => String(s||'').replace(/\s+/g,'').replace(/・/g,'').trim();
-      for(const r of rows.slice(headerRow+1)){
-        const rawName = String(r[nameIdx]||'').trim();
-        const rawId = idIdx >= 0 ? String(r[idIdx]||'').trim() : '';
-        const pv = Number(String(r[pvIdx]||'').replace(/,/g,''));
-        if((!rawName && !rawId) || !Number.isFinite(pv)) continue;
-        let hit = null;
-        if(rawId) hit = S.users.find(u=>String(u.id)===rawId);
-        if(!hit && rawName){
-          const normName = normalize(rawName);
-          hit = S.users.find(u=>normalize(u.nick)===normName || normalize(losName(u.id))===normName);
-        }
-        if(hit){
-          hit.actualAwardPV = pv;
-          updated += 1;
-        }
-      }
-      if(!updated) throw new Error('nomatch');
-      S.actualPVImportedAt = nowIso();
-      save();
-      renderApp();
-      alert(`インポート完了（${updated}件更新）`);
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      applyRows(rows);
     }catch(err){
       console.error(err);
-      const msg = err && err.message === 'nomatch'
-        ? '一致するメンバーが見つかりませんでした。ABO番号または名前列を確認してください。'
-        : 'インポートに失敗しました。ヘッダー行に「名前」と「アワードPV」または「PV」列があるか確認してください。';
-      alert(msg);
-    } finally {
-      if(ev && ev.target) ev.target.value = '';
+      alert('インポートに失敗しました。列名に「ABO番号」「名前」「アワードPV」があるか確認してください。');
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1392,7 +1432,7 @@ function saveModal(){
     u.pin=next;
   }
   if(m.mode==='actualpv'){
-    userById(uid).actualAwardPV = Number(document.getElementById('fPv').value||0); S.actualPVImportedAt = nowIso(); touch(uid,'pv');
+    syncActualPv(uid, Number(document.getElementById('fPv').value||0)); S.actualPVImportedAt = nowIso(); touch(uid,'pv');
   }
   save(); closeModal(); renderApp();
 }
